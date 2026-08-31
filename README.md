@@ -248,12 +248,6 @@ vite: (config) => ({
 });
 ```
 
-## Prior art
-
-`sanity-plugin-remote-files` and the `sanity-plugin-external-files` family each
-store **one file per document**. A rendition ladder is N files per document,
-which their upload contract can't express. Neither supports Sanity v6.
-
 ## Developing
 
 ```bash
