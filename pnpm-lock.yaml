@@ -13,37 +13,37 @@ importers:
         version: 1.55.4
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^5.0.0
+        specifier: ^5
         version: 5.20260830.1
       '@sanity/icons':
-        specifier: ^5.0.0
+        specifier: ^5
         version: 5.2.1(react@19.2.8)
       '@sanity/ui':
-        specifier: ^4.0.0
+        specifier: ^4
         version: 4.0.7(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(styled-components@6.5.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@types/react':
-        specifier: ^19.0.0
+        specifier: ^19
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.0.0
+        specifier: ^19
         version: 19.2.5(@types/react@19.2.18)
       react:
-        specifier: ^19.0.0
+        specifier: ^19
         version: 19.2.8
       react-dom:
-        specifier: ^19.0.0
+        specifier: ^19
         version: 19.2.8(react@19.2.8)
       sanity:
-        specifier: ^6.0.0
+        specifier: ^6
         version: 6.11.0(@babel/core@7.29.7)(@babel/runtime@7.29.7)(@noble/hashes@2.4.0)(@rolldown/plugin-babel@0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(rolldown@1.2.6)(vite@8.2.2(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)))(@sanity/sdk@2.20.2(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))(xstate@5.32.6))(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.27.7)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rolldown@1.2.6)(styled-components@6.5.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@5.9.3)
       styled-components:
-        specifier: ^6.0.0
+        specifier: ^6
         version: 6.5.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       tsup:
-        specifier: ^8.5.0
+        specifier: ^8
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.13)(typescript@5.9.3)(yaml@2.9.0)
       typescript:
-        specifier: ^5.9.0
+        specifier: ^5
         version: 5.9.3
 
 packages:
