@@ -29,7 +29,7 @@ export default defineConfig({
     r2Video({
       endpoint: "https://….workers.dev",  // deployed Worker
       token: "…",                         // matches the Worker's UPLOAD_TOKEN
-      publicUrl: "https://….r2.dev",      // origin renditions are served from
+      bucketUrl: "https://….r2.dev",      // origin renditions are served from
     }),
   ],
 });
@@ -59,15 +59,14 @@ or upload without leaving the page.
 
 ## Configuring
 
-Only `endpoint`, `token` and `publicUrl` are required. Everything else falls
-back to [`studio/defaults.ts`](studio/defaults.ts), which is the one place those
-values live — don't restate a default in your config, or you now have two.
+Only `endpoint`, `token` and `bucketUrl` are required. Everything else falls
+back to [`studio/defaults.ts`](studio/defaults.ts), shown here with its defaults.
 
 ```ts
 r2Video({
   endpoint: "https://….workers.dev",
   token: "…",
-  publicUrl: "https://….r2.dev",
+  bucketUrl: "https://….r2.dev",
 
   apiVersion: "2024-01-01",
 
@@ -135,7 +134,7 @@ wrangler deploy --config r2-video-worker/wrangler.jsonc
 ```
 
 Give `r2Video()` the deployed URL as `endpoint`, the same secret as `token`, and
-the bucket's public origin as `publicUrl`.
+the bucket's public URL as `bucketUrl`.
 
 The generated entry point is two lines — it re-exports this package's handler,
 so upgrading the package upgrades the deployed Worker. Only identity is
@@ -146,7 +145,7 @@ generated; nothing is copied.
 ```
 Studio ──encoded renditions──▶ Worker ──binding──▶ R2 bucket
    │                                                  │
-   └──poster──▶ Sanity image assets        public URL ─┘
+   └──poster──▶ Sanity image assets        bucket URL ─┘
 ```
 
 The Worker holds the only R2 binding, so **no R2 credentials exist outside
@@ -177,7 +176,7 @@ browser bundle.
 ```ts
 import { resolveRenditionPath } from "sanity-plugin-r2-video/storage";
 
-const src = `${publicUrl}/${resolveRenditionPath(asset._id, 720)}`;
+const src = `${bucketUrl}/${resolveRenditionPath(asset._id, 720)}`;
 ```
 
 ### Keys
@@ -193,7 +192,7 @@ j6w3wy2bd0jq/1080.mp4
 ```
 
 Documents store the id and the heights, not URLs — both the Studio and the web
-build sources from `publicUrl` plus the key. So moving the bucket behind a
+build sources from `bucketUrl` plus the key. So moving the bucket behind a
 custom domain is a config change, not a migration.
 
 ### Folders

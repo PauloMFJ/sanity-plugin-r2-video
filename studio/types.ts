@@ -132,7 +132,7 @@ export type R2VideoEncodingConfig = {
 /**
  * Options for `r2Video`.
  *
- * Only `endpoint`, `token` and `publicUrl` are required; what every other field
+ * Only `endpoint`, `token` and `bucketUrl` are required; what every other field
  * falls back to is in `defaults.ts`.
  */
 export type R2VideoPluginConfig = {
@@ -150,10 +150,11 @@ export type R2VideoPluginConfig = {
 	token: string;
 
 	/**
-	 * Public origin the renditions are served from. Source URLs are built from
-	 * this plus each rendition's key, so no document stores an origin.
+	 * Origin the renditions are served from - the bucket's public URL, or the
+	 * custom domain attached to it. Source URLs are built from this plus each
+	 * rendition's key, so no document stores an origin.
 	 */
-	publicUrl: string;
+	bucketUrl: string;
 
 	/** Sanity API version the plugin's own queries and mutations run against. */
 	apiVersion?: string;

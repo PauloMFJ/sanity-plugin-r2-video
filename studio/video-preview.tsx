@@ -53,7 +53,7 @@ export const VideoPreview = ({ renditions, posterUrl }: Props) => {
 			playsInline
 			poster={posterUrl}
 			preload="metadata"
-			src={`${config.publicUrl}/${rendition.key}`}
+			src={`${config.bucketUrl}/${rendition.key}`}
 			style={{
 				display: "block",
 
