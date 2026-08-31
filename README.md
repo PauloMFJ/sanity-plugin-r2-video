@@ -15,8 +15,8 @@ pnpm add sanity-plugin-r2-video
 ```
 
 `sanity`, `react`, `react-dom`, `@sanity/ui`, `@sanity/icons` and
-`styled-components` are peer dependencies, so the Studio's own copies are used
-rather than a second set. `mediabunny` is the only real dependency.
+`styled-components` are peer dependencies. `mediabunny` is the only real
+dependency.
 
 Then add the plugin, and a Worker for it to talk to:
 
@@ -39,14 +39,12 @@ export default defineConfig({
 
 Everything happens in the **R2 Video** tool in the Studio.
 
-**Upload** — drop files onto the library, or press Upload. Files stage in a list
-first; nothing encodes until you press the confirm button, because a single
-encode is minutes of GPU and far too expensive to start by accident.
+**Upload** — drop files onto the library, or press Upload. Files stage in a
+list first; nothing encodes until you confirm.
 
-**Settings** — collapsed by default, since the configured defaults are right
-almost every time. Open it to change the folder, keep audio, or adjust quality
-for this batch only. **Preview** encodes just the tallest tier so you can see
-the size and quality those settings actually produce before committing.
+**Settings** — collapsed by default. Open it to change the folder, keep audio,
+or adjust quality for this batch only. **Preview** encodes just the tallest tier,
+so you can see the size and quality those settings produce before committing.
 
 **Details** — click a card. Plays the video, lists every rendition with its
 size, and lets you rename it, move it to another folder, or delete it.
@@ -71,7 +69,7 @@ r2Video({
   tool: { name: "r2-video", title: "R2 Video" },
   folders: {
     type: "media.folder",             // document type folders are read from
-    poster: "_R2 Video Posters",       // where generated posters are filed
+    poster: "_R2 Video Posters",      // where generated posters are filed
   },
   encoding: {
     heights: [270, 360, 480, 720, 1080],
@@ -84,32 +82,27 @@ r2Video({
 });
 ```
 
-### The three that actually matter
+### Encoding
 
-**`heights`** is the one worth revisiting per project. A source shorter than a
-tier skips it, so listing tiers you never reach costs nothing — but every tier a
-source *does* reach is another full encode.
+**`heights`** is the tier ladder. A source shorter than a tier skips it; every
+tier it does reach is another full encode.
 
 **`quality`** maps to a **quantizer** for h264, not a bitrate: constant quality,
-variable file size. `0.75` is QP 22, the point h264 stops being distinguishable
-from the source. `1` is QP 16 and near-lossless, which routinely produces files
-**larger than the source** — that asks for a higher-fidelity encode than the
-original, and encoding cannot add back detail that was never captured.
+variable file size. `0.75` is QP 22, where h264 stops being distinguishable from
+the source. `1` is QP 16, near-lossless, and routinely produces files **larger
+than the source**.
 
 **`preferBitrate`** flips that trade: predictable size, variable quality. A
-1080p tier lands near 6.1 Mbps at `0.75` whatever the footage. Worth it when
-knowing what ends up in the bucket matters more than every clip hitting the same
-visual bar.
+1080p tier lands near 6.1 Mbps at `0.75` whatever the footage.
 
-`nativeTopTier` copies the top rendition instead of re-encoding, when its height
-and codec already match the source — instant and bit-identical. Off by default
-because it hands size control to whoever exported the file.
+**`nativeTopTier`** copies the top rendition instead of re-encoding it, when its
+height and codec already match the source — instant and bit-identical. Its size
+is then whatever the source was exported at.
 
 ## Setting up a Worker
 
-The Worker is the only thing holding an R2 binding. Scaffold one rather than
-hand-writing it, so the binding name, entry point and compatibility date can't
-be wrong:
+The Worker holds the R2 binding. Scaffold one — the binding name, entry point
+and compatibility date are fixed, and the CLI fills in the rest:
 
 ```bash
 pnpx sanity-plugin-r2-video setup worker
@@ -132,28 +125,27 @@ wrangler deploy --config r2-video-worker/wrangler.jsonc
 Give `r2Video()` the deployed URL as `endpointUrl`, the same secret as `token`,
 and the bucket's public URL as `bucketUrl`.
 
-The generated entry point is two lines — it re-exports this package's handler,
-so upgrading the package upgrades the deployed Worker. Only identity is
-generated; nothing is copied.
+The generated entry point re-exports this package's handler, so upgrading the
+package upgrades the deployed Worker. Only deployment identity — name, account,
+bucket, origins — is written out.
 
 ## How it works
 
 ```
 Studio ──encoded renditions──▶ Worker ──binding──▶ R2 bucket
-   │                                                  │
+   │                                                   │
    └──poster──▶ Sanity image assets        bucket URL ─┘
 ```
 
 The Worker holds the only R2 binding, so **no R2 credentials exist outside
-Cloudflare** — nothing is signed, and the bucket needs no CORS policy. Bytes go
-through the Worker rather than straight to the bucket because renditions are
-single-digit MB, well inside the request body limit, which removes presigning
-from the design entirely.
+Cloudflare**. Uploads go through it as plain request bodies — nothing is signed,
+and the bucket needs no CORS policy. A rendition has to fit in one request body,
+which caps an upload at 100 MB.
 
-`UPLOAD_TOKEN` ships inside the Studio bundle — it can't be secret, because the
-browser is what sends the upload. It gates casual access; the Worker's origin
-allowlist is the real guard. Cloudflare Access in front of the Worker is the fix
-if this ever needs more.
+`UPLOAD_TOKEN` ships inside the Studio bundle, since the browser is what sends
+the upload — **anyone who can load the Studio can read it**. The Worker's origin
+allowlist is what restricts access. Put Cloudflare Access in front of the Worker
+if you need authentication.
 
 ### Entry points
 
@@ -165,9 +157,8 @@ Three, each with its own tsconfig and its own type universe:
 ./storage    where files live       nothing
 ```
 
-`./storage` matters most for consumers: a web app imports it to build source
-URLs without pulling the Studio UI — and its sanity/react dependencies — into a
-browser bundle.
+`./storage` has no dependencies. A web app imports it to build source URLs
+without pulling the Studio UI, or `sanity` and `react`, into its bundle.
 
 ```ts
 import { resolveRenditionPath } from "sanity-plugin-r2-video/storage";
@@ -188,8 +179,8 @@ j6w3wy2bd0jq/1080.mp4
 ```
 
 Documents store the id and the heights, not URLs — both the Studio and the web
-build sources from `bucketUrl` plus the key. So moving the bucket behind a
-custom domain is a config change, not a migration.
+build sources from `bucketUrl` plus the key. Moving the bucket behind a custom
+domain is a config change, not a migration.
 
 ### Folders
 
@@ -199,29 +190,26 @@ picker; rename it there and every video moves with it.
 
 The type is `folders.type`, defaulting to `sanity-plugin-media`'s
 `media.folder`. The plugin never imports that package — it reads a document type
-by name, so pointing this elsewhere decouples them entirely.
+by name, so `folders.type` can point anywhere.
 
-Because keys carry no folder, renaming or moving is a Studio-side change that
-can never disagree with the bucket. The tool's filter lists only folders holding
-video; the upload dialog offers all of them, since a video often needs to go
-somewhere new.
+Keys carry no folder, so renaming or moving a video never touches the bucket.
+The tool's filter lists only folders holding video; the upload dialog offers all
+of them.
 
 Generated posters go to their own folder (`folders.poster`), created on first
-upload. They're a by-product of encoding rather than content, so they stay out of
-the folders holding real images.
+upload, so they stay out of the folders holding real images.
 
 ### Deleting
 
-Order is forced twice over, and `delete-video.ts` documents why:
+Order matters, and `delete-video.ts` documents it:
 
 1. Preflight `*[references($id)]` — anything found blocks the delete.
 2. Delete the document. This releases the strong reference to the poster.
 3. Delete the poster asset. Now unreferenced, so no `409`.
 4. Delete the R2 objects, batched.
 
-Sanity goes before R2 because the failure modes aren't symmetric: an orphaned
-object is invisible and costs pennies, whereas a document pointing at deleted
-media breaks the site.
+Sanity goes before R2: an orphaned object is invisible and costs pennies, a
+document pointing at deleted media breaks the site.
 
 ### When an upload fails
 
@@ -229,10 +217,8 @@ The document is written **last**, so a failure can never leave a video in the
 library pointing at files that aren't there.
 
 Anything created before that point is rolled back. Keys are recorded *before*
-each upload rather than after, since a request that times out may still have
-stored the object — an untracked key is unreachable forever. Rollback never
-throws: whatever broke the upload will likely break the deletes too, and "upload
-failed, and so did the cleanup" buries the message that matters.
+each upload, since a request that times out may still have stored the object.
+Rollback never throws — the failure that started it is what surfaces.
 
 **A closed tab or a crash skips rollback entirely**, and encoded renditions live
 only in memory, so there's no resume. Whatever either case leaves behind is
@@ -244,8 +230,8 @@ unreferenced — **Sync** in the tool finds and removes it.
 
 Uploading needs WebCodecs h264 encoding, which Safari doesn't reliably provide.
 The gate is a capability check — mediabunny's own `canEncodeVideo('avc')`, not
-user-agent sniffing — so anything that can't encode gets an explanation rather
-than a failure halfway through. **Playback is unaffected everywhere.**
+user-agent sniffing — and unsupported browsers get told so before they pick a
+file. **Playback is unaffected everywhere.**
 
 ### The encoder runs in a Web Worker
 
@@ -262,12 +248,11 @@ vite: (config) => ({
 });
 ```
 
-## Design notes
+## Prior art
 
 `sanity-plugin-remote-files` and the `sanity-plugin-external-files` family each
-store **one file per document**. A rendition ladder is N files per document, and
-their upload contract can't express that. Nothing off the shelf supported Sanity
-v6 either.
+store **one file per document**. A rendition ladder is N files per document,
+which their upload contract can't express. Neither supports Sanity v6.
 
 ## Developing
 
@@ -277,9 +262,8 @@ pnpm run type-check
 pnpm run build      # tsup: ESM + types into dist
 ```
 
-`./worker` ships as TypeScript on purpose — wrangler compiles it, and consumers
-extend `worker/tsconfig.json` to get the same compiler options the endpoint was
-written against.
+`./worker` ships as TypeScript: wrangler compiles it, and the generated Worker
+extends `worker/tsconfig.json` for the compiler options it was written against.
 
 ## License
 
