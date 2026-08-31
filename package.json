@@ -51,6 +51,7 @@
 	},
 	"scripts": {
 		"build": "tsup",
+		"dev": "tsup --watch",
 		"type-check": "tsc --noEmit -p studio/tsconfig.json && tsc --noEmit -p worker/tsconfig.check.json",
 		"prepublishOnly": "pnpm run type-check && pnpm run build",
 		"setup:worker": "node bin/cli.js setup worker"

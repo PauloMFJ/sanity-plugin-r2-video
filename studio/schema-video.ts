@@ -6,7 +6,7 @@ import { InputVideoAsset } from "./input-video-asset";
 
 /**
  * The library document. Everything but `filename` and `folder` is written by the
- * upload pipeline and read-only — there is nothing an editor can usefully
+ * upload pipeline and read-only - there is nothing an editor can usefully
  * correct by hand, and a stale `renditions` entry would point at an object that
  * isn't in the bucket.
  */
@@ -22,7 +22,7 @@ export const createVideoAssetSchema = (config: ResolvedR2VideoConfig) => {
 				name: "filename",
 				type: "string",
 				description:
-					"The name shown everywhere in the Studio. Renaming is safe — object keys carry no name, so nothing in storage depends on it.",
+					"The name shown everywhere in the Studio. Renaming is safe - object keys carry no name, so nothing in storage depends on it.",
 				validation: (Rule) => Rule.required(),
 			}),
 			defineField({

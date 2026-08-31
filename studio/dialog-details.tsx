@@ -5,7 +5,6 @@ import {
 	Card,
 	Dialog,
 	Flex,
-	Grid,
 	Select,
 	Stack,
 	Text,
@@ -15,9 +14,9 @@ import { useEffect, useState } from "react";
 import { useClient } from "sanity";
 import { useR2VideoConfig } from "./config-context";
 import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
-import { formatDuration, formatSize } from "./format";
 import type { LibraryAsset } from "./tool-video-library";
 import { VideoPreview } from "./video-preview";
+import { VideoSummary } from "./video-summary";
 
 type FieldProps = {
 	label: string;
@@ -32,23 +31,6 @@ const Field = ({ label, children }: FieldProps) => {
 				{label}
 			</Text>
 			{children}
-		</Stack>
-	);
-};
-
-type FactProps = {
-	label: string;
-	value: string;
-};
-
-/** One read-only detail. Uniform by construction — every value is a string. */
-const Fact = ({ label, value }: FactProps) => {
-	return (
-		<Stack gap={2}>
-			<Text muted size={0}>
-				{label}
-			</Text>
-			<Text size={1}>{value}</Text>
 		</Stack>
 	);
 };
@@ -81,15 +63,6 @@ export const DialogDetails = ({
 	useEffect(() => {
 		fetchFolders(client, config.folders.type).then(setFolders);
 	}, [client, config.folders.type]);
-
-	const totalBytes = asset.renditions.reduce((total, rendition) => {
-		return total + rendition.size;
-	}, 0);
-
-	// Stored in encode order, which happens to be largest first — sorted here so
-	// the list is deliberately ordered rather than incidentally
-	const ordered = [...asset.renditions].sort((a, b) => b.height - a.height);
-	const largest = ordered[0];
 
 	// Every folder, not just the ones already holding video — the point of
 	// changing folder is often to move something somewhere new
@@ -245,54 +218,12 @@ export const DialogDetails = ({
 						</Card>
 					)}
 
-					<Card border padding={4} radius={2} tone="transparent">
-						<Grid gap={4} gridTemplateColumns={[2, 4]}>
-							<Fact
-								label="Source"
-								value={
-									largest ? `${largest.width} × ${largest.height}` : "Unknown"
-								}
-							/>
-							<Fact label="Duration" value={formatDuration(asset.duration)} />
-							<Fact
-								label="Audio"
-								value={asset.hasAudio ? "Kept" : "Stripped"}
-							/>
-							<Fact label="Total" value={formatSize(totalBytes)} />
-						</Grid>
-					</Card>
-
-					<Stack gap={3}>
-						<Text muted size={1} weight="medium">
-							Renditions
-						</Text>
-
-						<Card border radius={2}>
-							{ordered.map((rendition, index) => (
-								<Card
-									key={rendition.key}
-									borderTop={index > 0}
-									padding={3}
-									radius={0}
-								>
-									<Flex align="center" gap={3}>
-										<Box flex={1}>
-											<Text size={1}>
-												{rendition.width} × {rendition.height}
-											</Text>
-										</Box>
-										<Text muted size={1}>
-											{formatSize(rendition.size)}
-										</Text>
-									</Flex>
-								</Card>
-							))}
-						</Card>
-					</Stack>
-
-					<Text muted size={0}>
-						Uploaded {new Date(asset.uploadedAt).toLocaleString()}
-					</Text>
+					<VideoSummary
+						duration={asset.duration}
+						hasAudio={asset.hasAudio}
+						renditions={asset.renditions}
+						uploadedAt={asset.uploadedAt}
+					/>
 				</Stack>
 			</Card>
 		</Dialog>

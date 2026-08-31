@@ -1,5 +1,5 @@
-import { resolveRenditionPath } from "../storage";
 import type { SanityClient } from "sanity";
+import { resolveRenditionPath } from "../storage";
 import { deleteObjects, uploadObject } from "./client";
 import type { ResolvedR2VideoConfig } from "./defaults";
 import { resolvePosterFolder } from "./folders";
@@ -161,6 +161,9 @@ export const uploadVideo = async ({
 			const stored = await uploadObject(config, key, rendition.data);
 
 			renditions.push({
+				// One rendition per height, so the height is already the unique key
+				// Sanity needs on an array item
+				_key: String(rendition.height),
 				width: rendition.width,
 				height: rendition.height,
 				key: stored.key,

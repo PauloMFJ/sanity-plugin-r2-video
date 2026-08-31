@@ -2,6 +2,12 @@ import type { AudioCodec, VideoCodec } from "mediabunny";
 
 /** A single encoded MP4 rendition, stored as one object in R2. */
 export type R2VideoRendition = {
+	/**
+	 * Sanity's array item key, set to the height. Optional because documents
+	 * written before it was added don't carry one.
+	 */
+	_key?: string;
+
 	width: number;
 	height: number;
 	key: string;
