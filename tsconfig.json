@@ -1,0 +1,13 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig.json",
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "preserve",
+		"moduleDetection": "force",
+		"jsx": "react-jsx",
+		"strict": true,
+		"skipLibCheck": true,
+		"types": ["react", "react-dom"]
+	},
+	"include": ["storage.ts", "studio", "tsup.config.ts"]
+}

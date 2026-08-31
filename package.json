@@ -1,0 +1,88 @@
+{
+	"name": "sanity-plugin-r2-video",
+	"version": "0.1.0",
+	"description": "Video for Sanity Studio, encoded in the browser and stored in Cloudflare R2 as a ladder of plain MP4s.",
+	"keywords": [
+		"sanity",
+		"sanity-plugin",
+		"cloudflare",
+		"r2",
+		"video",
+		"webcodecs",
+		"mediabunny"
+	],
+	"license": "MIT",
+	"author": "Paulo Ferreira Jorge",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/PauloMFJ/sanity-plugin-r2-video.git"
+	},
+	"homepage": "https://github.com/PauloMFJ/sanity-plugin-r2-video#readme",
+	"bugs": "https://github.com/PauloMFJ/sanity-plugin-r2-video/issues",
+	"type": "module",
+	"sideEffects": false,
+	"exports": {
+		"./studio": {
+			"types": "./dist/studio/index.d.ts",
+			"default": "./dist/studio/index.js"
+		},
+		"./storage": {
+			"types": "./dist/storage.d.ts",
+			"default": "./dist/storage.js"
+		},
+		"./worker": "./worker/index.ts",
+		"./worker/tsconfig.json": "./worker/tsconfig.json",
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"sanity-plugin-r2-video": "./bin/cli.js"
+	},
+	"files": [
+		"dist",
+		"worker/index.ts",
+		"worker/tsconfig.json",
+		"bin"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsup",
+		"type-check": "tsc --noEmit -p studio/tsconfig.json && tsc --noEmit -p worker/tsconfig.check.json",
+		"prepublishOnly": "pnpm run type-check && pnpm run build",
+		"setup:worker": "node bin/cli.js setup worker"
+	},
+	"dependencies": {
+		"mediabunny": "^1.55.4"
+	},
+	"peerDependencies": {
+		"@cloudflare/workers-types": "^5",
+		"@sanity/icons": "^5",
+		"@sanity/ui": "^4",
+		"react": "^19",
+		"react-dom": "^19",
+		"sanity": "^6",
+		"styled-components": "^6"
+	},
+	"peerDependenciesMeta": {
+		"@cloudflare/workers-types": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.0.0",
+		"@sanity/icons": "^5.0.0",
+		"@sanity/ui": "^4.0.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"sanity": "^6.0.0",
+		"styled-components": "^6.0.0",
+		"tsup": "^8.5.0",
+		"typescript": "^5.9.0"
+	}
+}
