@@ -20,7 +20,7 @@ const DEFAULTS = {
 	},
 	folders: {
 		type: "media.folder",
-		poster: "R2 Video Posters",
+		poster: "_R2 Video Posters",
 	},
 	encoding: {
 		heights: [270, 360, 480, 720, 1080],

@@ -34,7 +34,7 @@ export const uploadObject = async (
 	key: string,
 	body: ArrayBuffer,
 ) => {
-	const response = await fetch(`${config.endpoint}/upload`, {
+	const response = await fetch(`${config.endpointUrl}/upload`, {
 		method: "POST",
 		headers: {
 			...authorize(config),
@@ -75,7 +75,7 @@ export const listObjects = async (config: R2VideoPluginConfig) => {
 	do {
 		const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
 
-		const response = await fetch(`${config.endpoint}/files${query}`, {
+		const response = await fetch(`${config.endpointUrl}/files${query}`, {
 			headers: authorize(config),
 		});
 
@@ -104,7 +104,7 @@ export const deleteObjects = async (
 		return;
 	}
 
-	const response = await fetch(`${config.endpoint}/files`, {
+	const response = await fetch(`${config.endpointUrl}/files`, {
 		method: "DELETE",
 		headers: { ...authorize(config), "content-type": "application/json" },
 		body: JSON.stringify({ keys }),

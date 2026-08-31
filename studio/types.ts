@@ -132,7 +132,7 @@ export type R2VideoEncodingConfig = {
 /**
  * Options for `r2Video`.
  *
- * Only `endpoint`, `token` and `bucketUrl` are required; what every other field
+ * Only `endpointUrl`, `token` and `bucketUrl` are required; what every other field
  * falls back to is in `defaults.ts`.
  */
 export type R2VideoPluginConfig = {
@@ -140,7 +140,7 @@ export type R2VideoPluginConfig = {
 	 * Origin of the deployed Worker that owns uploads and deletes. The Worker
 	 * holds the R2 binding; the Studio never touches the bucket directly.
 	 */
-	endpoint: string;
+	endpointUrl: string;
 
 	/**
 	 * Shared secret the Worker checks. This ships inside the Studio bundle, so

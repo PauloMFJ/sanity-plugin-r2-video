@@ -27,9 +27,9 @@ import { r2Video } from "sanity-plugin-r2-video/studio";
 export default defineConfig({
   plugins: [
     r2Video({
-      endpoint: "https://….workers.dev",  // deployed Worker
-      token: "…",                         // matches the Worker's UPLOAD_TOKEN
-      bucketUrl: "https://….r2.dev",      // origin renditions are served from
+      endpointUrl: "https://….workers.dev",  // deployed Worker
+      token: "…",                            // matches the Worker's UPLOAD_TOKEN
+      bucketUrl: "https://….r2.dev",         // origin renditions are served from
     }),
   ],
 });
@@ -59,24 +59,20 @@ or upload without leaving the page.
 
 ## Configuring
 
-Only `endpoint`, `token` and `bucketUrl` are required. Everything else falls
+Only `endpointUrl`, `token` and `bucketUrl` are required. Everything else falls
 back to [`studio/defaults.ts`](studio/defaults.ts), shown here with its defaults.
 
 ```ts
 r2Video({
-  endpoint: "https://….workers.dev",
+  endpointUrl: "https://….workers.dev",
   token: "…",
   bucketUrl: "https://….r2.dev",
-
   apiVersion: "2024-01-01",
-
   tool: { name: "r2-video", title: "R2 Video" },
-
   folders: {
     type: "media.folder",             // document type folders are read from
-    poster: "R2 Video Posters",       // where generated posters are filed
+    poster: "_R2 Video Posters",       // where generated posters are filed
   },
-
   encoding: {
     heights: [270, 360, 480, 720, 1080],
     videoCodec: "avc",
@@ -133,8 +129,8 @@ wrangler secret put UPLOAD_TOKEN --config r2-video-worker/wrangler.jsonc
 wrangler deploy --config r2-video-worker/wrangler.jsonc
 ```
 
-Give `r2Video()` the deployed URL as `endpoint`, the same secret as `token`, and
-the bucket's public URL as `bucketUrl`.
+Give `r2Video()` the deployed URL as `endpointUrl`, the same secret as `token`,
+and the bucket's public URL as `bucketUrl`.
 
 The generated entry point is two lines — it re-exports this package's handler,
 so upgrading the package upgrades the deployed Worker. Only identity is
