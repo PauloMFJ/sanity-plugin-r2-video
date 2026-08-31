@@ -108,20 +108,6 @@ const src = `${bucketUrl}/${rendition.key}`;
 never produces a 1080p entry, so you can pick from this array without checking
 whether a tier exists.
 
-A query that gives a front end everything it needs:
-
-```groq
-video {
-  asset -> {
-    duration,
-    hasAudio,
-    "heights": renditions[].height,
-    "aspectRatio": poster.asset -> metadata.dimensions.aspectRatio,
-    poster { asset -> { url, metadata { lqip } } }
-  }
-}
-```
-
 If you'd rather store the video's id than a list of keys, take it off any key and
 rebuild the rest with `resolveRenditionPath`. Keys are `<id>/<height>.mp4`, so the
 id is the part before the slash:
