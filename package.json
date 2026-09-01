@@ -1,6 +1,6 @@
 {
 	"name": "sanity-plugin-r2-video",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "Video for Sanity Studio, encoded in the browser and stored in Cloudflare R2 as a ladder of plain MP4s.",
 	"keywords": [
 		"sanity",
