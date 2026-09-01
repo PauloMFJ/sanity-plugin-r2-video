@@ -3,7 +3,7 @@ import { Box, Button, Flex, Stack } from "@sanity/ui";
 import { useState } from "react";
 import { type ObjectInputProps, set } from "sanity";
 import { DialogUpload } from "./dialog-upload";
-import { DragOverlay, useFileDrop } from "./file-drop";
+import { DropToUpload, useFileDrop } from "./file-drop";
 import type { R2VideoAsset, R2VideoValue } from "./types";
 
 /** Reads the folder a field files its uploads under, if it declares one. */
@@ -67,7 +67,7 @@ export const InputVideo = (props: ObjectInputProps<R2VideoValue>) => {
 
 	return (
 		<Stack gap={3} style={{ position: "relative" }} {...dropProps}>
-			{isDragging && <DragOverlay />}
+			{isDragging && <DropToUpload />}
 
 			<Flex gap={1}>
 				<Box flex={1}>

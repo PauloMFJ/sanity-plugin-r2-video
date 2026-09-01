@@ -1,4 +1,5 @@
-import { Flex, Text } from "@sanity/ui";
+import { UploadIcon } from "@sanity/icons/Upload";
+import { Card, Flex, Text } from "@sanity/ui";
 import { type DragEvent, useEffect, useRef, useState } from "react";
 
 /**
@@ -26,6 +27,35 @@ export const DragOverlay = () => {
 				Drop files to upload
 			</Text>
 		</Flex>
+	);
+};
+
+/**
+ * The drop state Sanity's own image field uses: the input stays visible and
+ * ghosts through a primary-toned wash, rather than being hidden behind a scrim.
+ * Fixed to the surface it covers, and transparent to the pointer so the drop
+ * lands on the handlers underneath.
+ */
+export const DropToUpload = () => {
+	return (
+		<Card
+			radius={2}
+			tone="primary"
+			style={{
+				position: "absolute",
+				inset: 0,
+				zIndex: 3,
+				opacity: 0.9,
+				pointerEvents: "none",
+			}}
+		>
+			<Flex align="center" gap={2} justify="center" style={{ height: "100%" }}>
+				<Text size={2}>
+					<UploadIcon />
+				</Text>
+				<Text size={2}>Drop to upload</Text>
+			</Flex>
+		</Card>
 	);
 };
 
