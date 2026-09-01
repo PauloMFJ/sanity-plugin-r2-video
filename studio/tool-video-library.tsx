@@ -32,7 +32,10 @@ const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	poster,
 	duration,
 	hasAudio,
-	renditions,
+
+	// A document the pipeline never finished - Sanity's own create button made
+	// these before the reference field disabled it - has no renditions at all
+	"renditions": coalesce(renditions, []),
 	uploadedAt,
 	"posterUrl": poster.asset->url,
 	"folderName": folder->name
@@ -60,11 +63,13 @@ const slugify = (name: string) => {
  * and repeating it on every card says nothing.
  */
 const toTitle = (asset: LibraryAsset, isFiltered: boolean) => {
+	const filename = asset.filename || "Untitled video";
+
 	if (isFiltered || !asset.folderName) {
-		return asset.filename;
+		return filename;
 	}
 
-	return `${slugify(asset.folderName)}/${asset.filename}`;
+	return `${slugify(asset.folderName)}/${filename}`;
 };
 
 export type LibraryAsset = R2VideoAsset & {

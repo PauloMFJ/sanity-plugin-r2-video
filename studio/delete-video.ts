@@ -31,16 +31,26 @@ export const deleteVideoAsset = async (
 ) => {
 	await client.delete(asset._id);
 
+	// Both are missing on a document the pipeline never finished writing, and
+	// deleting one of those has to work - it's the only way to be rid of it
+	const posterId = asset.poster?.asset?._ref;
+	const renditions = asset.renditions ?? [];
+
 	// A poster shared with another document stays put. That rejection is an
 	// expected outcome of this sequence, not a failure of it
-	try {
-		await client.delete(asset.poster.asset._ref);
-	} catch (error) {
-		console.info(`Kept poster for '${asset.filename}' - still in use.`, error);
+	if (posterId) {
+		try {
+			await client.delete(posterId);
+		} catch (error) {
+			console.info(
+				`Kept poster for '${asset.filename}' - still in use.`,
+				error,
+			);
+		}
 	}
 
 	await deleteObjects(
 		config,
-		asset.renditions.map((rendition) => rendition.key),
+		renditions.map((rendition) => rendition.key),
 	);
 };
