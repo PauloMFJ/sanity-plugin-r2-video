@@ -131,7 +131,7 @@ export const DialogDetails = ({
 
 	return (
 		<Dialog
-			header={asset.filename}
+			header={asset.filename || "Untitled video"}
 			id="r2-video-details"
 			width={1}
 			onClose={isSaving ? undefined : onClose}

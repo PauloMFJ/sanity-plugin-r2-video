@@ -27,7 +27,10 @@ import type { R2VideoAsset } from "./types";
 const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	_id,
 	_type,
-	filename,
+
+	// Both are absent on a document the pipeline never finished, and every
+	// consumer of this query treats them as present
+	"filename": coalesce(filename, ""),
 	folder,
 	poster,
 	duration,
