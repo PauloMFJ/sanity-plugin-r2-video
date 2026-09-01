@@ -69,7 +69,7 @@ export const InputVideo = (props: ObjectInputProps<R2VideoValue>) => {
 		<Stack gap={3} style={{ position: "relative" }} {...dropProps}>
 			{isDragging && <DropToUpload isRejected={isRejected} />}
 
-			<Flex gap={1}>
+			<Flex gap={0}>
 				<Box flex={1}>
 					{/* Renders the members' inputs without their field chrome */}
 					{renderDefault({
