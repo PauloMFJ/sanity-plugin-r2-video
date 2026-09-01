@@ -68,6 +68,11 @@ export const DialogDetails = ({
 	// changing folder is often to move something somewhere new
 	const paths = resolveFolderPaths(folders);
 
+	// A document the upload pipeline never finished writing. There is nothing to
+	// play, nothing to rename that matters, and no objects behind it - the only
+	// useful action is removing it
+	const isBroken = asset.renditions.length === 0;
+
 	const trimmed = filename.trim();
 	const savedFolderId = asset.folder ? asset.folder._ref : "";
 
@@ -156,75 +161,87 @@ export const DialogDetails = ({
 								onClick={isDirty ? reset : onClose}
 							/>
 						</Box>
-						<Box flex={1}>
-							<Button
-								disabled={isSaving || !isDirty}
-								text={isSaving ? "Saving…" : "Save changes"}
-								tone="primary"
-								width="fill"
-								onClick={save}
-							/>
-						</Box>
+
+						{!isBroken && (
+							<Box flex={1}>
+								<Button
+									disabled={isSaving || !isDirty}
+									text={isSaving ? "Saving…" : "Save changes"}
+									tone="primary"
+									width="fill"
+									onClick={save}
+								/>
+							</Box>
+						)}
 					</Flex>
 				</Card>
 			}
 		>
 			<Card padding={4}>
-				<Stack gap={5}>
-					<VideoPreview
-						renditions={asset.renditions}
-						posterUrl={asset.posterUrl}
-					/>
+				{isBroken ? (
+					<Card padding={4} radius={2} tone="caution">
+						<Text size={1}>
+							This video was never finished uploading, so it has no renditions
+							and nothing stored behind it. Delete it.
+						</Text>
+					</Card>
+				) : (
+					<Stack gap={5}>
+						<VideoPreview
+							renditions={asset.renditions}
+							posterUrl={asset.posterUrl}
+						/>
 
-					<Flex gap={3}>
-						<Box flex={1}>
-							<Field label="Filename">
-								<TextInput
-									aria-label="Filename"
-									disabled={isSaving}
-									value={filename}
-									onChange={(event) => setFilename(event.currentTarget.value)}
-									onKeyDown={(event) => {
-										if (event.key === "Enter") {
-											save();
-										}
-									}}
-								/>
-							</Field>
-						</Box>
+						<Flex gap={3}>
+							<Box flex={1}>
+								<Field label="Filename">
+									<TextInput
+										aria-label="Filename"
+										disabled={isSaving}
+										value={filename}
+										onChange={(event) => setFilename(event.currentTarget.value)}
+										onKeyDown={(event) => {
+											if (event.key === "Enter") {
+												save();
+											}
+										}}
+									/>
+								</Field>
+							</Box>
 
-						<Box flex={1}>
-							<Field label="Folder">
-								<Select
-									aria-label="Folder"
-									disabled={isSaving}
-									value={folderId}
-									onChange={(event) => setFolderId(event.currentTarget.value)}
-								>
-									<option value="">No folder</option>
-									{paths.map((entry) => (
-										<option key={entry.id} value={entry.id}>
-											{entry.path}
-										</option>
-									))}
-								</Select>
-							</Field>
-						</Box>
-					</Flex>
+							<Box flex={1}>
+								<Field label="Folder">
+									<Select
+										aria-label="Folder"
+										disabled={isSaving}
+										value={folderId}
+										onChange={(event) => setFolderId(event.currentTarget.value)}
+									>
+										<option value="">No folder</option>
+										{paths.map((entry) => (
+											<option key={entry.id} value={entry.id}>
+												{entry.path}
+											</option>
+										))}
+									</Select>
+								</Field>
+							</Box>
+						</Flex>
 
-					{error && (
-						<Card padding={3} radius={2} tone="critical">
-							<Text size={1}>{error}</Text>
-						</Card>
-					)}
+						{error && (
+							<Card padding={3} radius={2} tone="critical">
+								<Text size={1}>{error}</Text>
+							</Card>
+						)}
 
-					<VideoSummary
-						duration={asset.duration}
-						hasAudio={asset.hasAudio}
-						renditions={asset.renditions}
-						uploadedAt={asset.uploadedAt}
-					/>
-				</Stack>
+						<VideoSummary
+							duration={asset.duration}
+							hasAudio={asset.hasAudio}
+							renditions={asset.renditions}
+							uploadedAt={asset.uploadedAt}
+						/>
+					</Stack>
+				)}
 			</Card>
 		</Dialog>
 	);
