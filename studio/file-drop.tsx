@@ -3,34 +3,6 @@ import { UploadIcon } from "@sanity/icons/Upload";
 import { Card, Flex, Text } from "@sanity/ui";
 import { type DragEvent, useEffect, useRef, useState } from "react";
 
-/**
- * Lifted verbatim from `sanity-plugin-media`'s own `DragActiveContainer`, so
- * dragging into the video library looks identical to dragging into the image
- * one. White on a fixed black scrim, so it takes no theme token.
- */
-const OVERLAY_STYLE = {
-	alignItems: "center",
-	background: "rgba(0, 0, 0, 0.75)",
-	color: "#fff",
-	display: "flex",
-	height: "100%",
-	justifyContent: "center",
-	position: "absolute",
-	right: 0,
-	top: 0,
-	width: "100%",
-	zIndex: 3,
-} as const;
-export const DragOverlay = () => {
-	return (
-		<Flex style={OVERLAY_STYLE}>
-			<Text size={3} style={{ color: "inherit" }}>
-				Drop files to upload
-			</Text>
-		</Flex>
-	);
-};
-
 /** Whether a drag is carrying something this field can actually take. */
 const hasVideoFile = (transfer: DataTransfer) => {
 	return Array.from(transfer.items).some((item) => {

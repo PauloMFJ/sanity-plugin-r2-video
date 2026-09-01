@@ -3,7 +3,7 @@ import { Box, Button, Card, Dialog, Flex, Stack, Text } from "@sanity/ui";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useClient } from "sanity";
 import { useR2VideoConfig } from "./config-context";
-import { DragOverlay, useFileDrop } from "./file-drop";
+import { DropToUpload, useFileDrop } from "./file-drop";
 import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
 import { formatSize } from "./format";
 import { PreviewEncode } from "./preview-encode";
@@ -194,7 +194,7 @@ export const DialogUpload = ({
 
 	// The dialog is its own drop surface, so dragging onto it adds to the
 	// pending list rather than reaching the library behind it
-	const { isDragging, dropProps } = useFileDrop({
+	const { isDragging, isRejected, dropProps } = useFileDrop({
 		isEnabled: !isBusy && canEncode !== false,
 		onDrop: stage,
 	});
@@ -281,7 +281,7 @@ export const DialogUpload = ({
 							tone="transparent"
 							{...dropProps}
 						>
-							{isDragging && <DragOverlay />}
+							{isDragging && <DropToUpload isRejected={isRejected} />}
 
 							<Stack gap={4}>
 								<Stack gap={3}>

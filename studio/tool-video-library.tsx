@@ -19,7 +19,7 @@ import { DialogDelete } from "./dialog-delete";
 import { DialogDetails } from "./dialog-details";
 import { DialogOrphans } from "./dialog-orphans";
 import { DialogUpload } from "./dialog-upload";
-import { DragOverlay, useFileDrop } from "./file-drop";
+import { DropToUpload, useFileDrop } from "./file-drop";
 import { FolderSidebar } from "./folder-sidebar";
 import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
 import type { R2VideoAsset } from "./types";
@@ -134,7 +134,7 @@ export const ToolVideoLibrary = () => {
 
 	// Disabled while the upload dialog is open - that dialog owns drops from
 	// then on, and a surface underneath must not also react to them
-	const { isDragging, dropProps } = useFileDrop({
+	const { isDragging, isRejected, dropProps } = useFileDrop({
 		isEnabled: !isUploadOpen,
 		onDrop: (files) => {
 			// Staged, not started - the dialog opens so folder and audio can be
@@ -254,7 +254,7 @@ export const ToolVideoLibrary = () => {
 				</Box>
 			</Box>
 
-			{isDragging && <DragOverlay />}
+			{isDragging && <DropToUpload isRejected={isRejected} />}
 
 			{isUploadOpen && (
 				<DialogUpload
