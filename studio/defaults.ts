@@ -34,7 +34,7 @@ const DEFAULTS = {
 
 /**
  * Fills in every optional field once, so nothing downstream carries its own
- * fallback — a default in two places is a default that eventually disagrees.
+ * fallback - a default in two places is a default that eventually disagrees.
  */
 export const resolveConfig = (
 	config: R2VideoPluginConfig,

@@ -34,7 +34,7 @@ const STAGE_LABELS: Record<UploadProgress["stage"], string> = {
 };
 
 /**
- * `transparent` rather than `default` — a default-toned card matches the
+ * `transparent` rather than `default` - a default-toned card matches the
  * surface behind it, so the rows read as indentation instead of a list.
  */
 const STATUS_TONES: Record<
@@ -92,7 +92,7 @@ type Props = {
 
 /**
  * Staged upload. Files land as `pending` so folder and audio can be set before
- * anything encodes — encoding is minutes of GPU per video, far too expensive to
+ * anything encodes - encoding is minutes of GPU per video, far too expensive to
  * start on a mis-click and throw away.
  *
  * Once running, files go one at a time on purpose: parallel WebCodecs encodes
@@ -294,7 +294,7 @@ export const DialogUpload = ({
 										Drop videos here
 									</Text>
 									<Text align="center" muted size={0}>
-										MP4, MOV or WebM — encoded to every size the site needs
+										MP4, MOV or WebM - encoded to every size the site needs
 									</Text>
 								</Stack>
 								<Flex justify="center">

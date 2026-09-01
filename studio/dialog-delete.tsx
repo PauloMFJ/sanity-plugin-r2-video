@@ -28,7 +28,7 @@ type Props = {
 /**
  * Confirms a delete that crosses two systems and can't be undone, so it shows
  * exactly what goes: every rendition, the bytes they add up to, and any
- * document that would break — which blocks the delete outright.
+ * document that would break - which blocks the delete outright.
  */
 export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 	const config = useR2VideoConfig();
@@ -99,7 +99,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 			<Card padding={4}>
 				<Stack gap={4}>
 					<Text size={1}>
-						{asset.filename} — {asset.renditions.length} renditions,{" "}
+						{asset.filename} - {asset.renditions.length} renditions,{" "}
 						{formatSize(totalBytes)}, plus its poster.
 					</Text>
 

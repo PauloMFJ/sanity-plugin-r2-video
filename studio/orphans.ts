@@ -30,7 +30,7 @@ const QUERY_ORPHAN_POSTERS = `*[
 /**
  * What storage holds that nothing in the dataset points at.
  *
- * These accumulate when an upload dies without rolling back — a closed tab or a
+ * These accumulate when an upload dies without rolling back - a closed tab or a
  * crash, since rollback can't run then. Everything found here is unreferenced
  * by definition, so removing it can't break a page.
  */
@@ -62,7 +62,7 @@ export const findOrphans = async (
 
 /**
  * Deletes what `findOrphans` turned up. Posters go one at a time so a single
- * rejection — a reference created between the scan and the delete — doesn't
+ * rejection - a reference created between the scan and the delete - doesn't
  * abandon the rest.
  */
 export const removeOrphans = async (
@@ -76,7 +76,7 @@ export const removeOrphans = async (
 		try {
 			await client.delete(posterId);
 		} catch (error) {
-			console.warn(`Kept poster '${posterId}' — still referenced.`, error);
+			console.warn(`Kept poster '${posterId}' - still referenced.`, error);
 		}
 	}
 };

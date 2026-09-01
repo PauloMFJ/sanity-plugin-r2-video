@@ -35,7 +35,7 @@ const Field = ({ id, label, description, children }: FieldProps) => {
 	);
 };
 
-/** A toggle keeps its label beside it — a switch under a label reads as adrift. */
+/** A toggle keeps its label beside it - a switch under a label reads as adrift. */
 const ToggleRow = ({ id, label, description, children }: FieldProps) => {
 	return (
 		<Flex align="center" gap={3}>
@@ -112,7 +112,7 @@ export const UploadSettings = ({
 			{isOpen && (
 				<Stack gap={4} id={panelId}>
 					<Field
-						description="Shared with the image library — create folders there and they appear here."
+						description="Shared with the image library - create folders there and they appear here."
 						id={folderInputId}
 						label="Folder"
 					>

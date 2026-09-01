@@ -26,7 +26,7 @@ const failed = async (response: Response, action: string) => {
 
 /**
  * Stores one rendition. Bytes go through the Worker rather than straight to
- * R2 — renditions are single-digit MB, well inside the request body limit, and
+ * R2 - renditions are single-digit MB, well inside the request body limit, and
  * routing through the binding keeps credentials out of the Studio entirely.
  */
 export const uploadObject = async (
@@ -95,7 +95,7 @@ export const listObjects = async (config: R2VideoPluginConfig) => {
 	return keys;
 };
 
-/** Removes stored objects. Batched — R2 deletes many keys in one call. */
+/** Removes stored objects. Batched - R2 deletes many keys in one call. */
 export const deleteObjects = async (
 	config: R2VideoPluginConfig,
 	keys: string[],

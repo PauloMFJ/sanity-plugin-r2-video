@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
 	// `studio/transcode.worker` is its own entry so it lands beside
-	// `studio/index.js` in `dist` — that's what `new URL("./transcode.worker.js",
+	// `studio/index.js` in `dist` - that's what `new URL("./transcode.worker.js",
 	// import.meta.url)` resolves against at runtime.
 	entry: {
 		"studio/index": "studio/index.ts",

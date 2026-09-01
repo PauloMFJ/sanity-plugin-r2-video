@@ -44,7 +44,7 @@ type FileDropConfig = {
  * Depth-counted drag tracking plus the props to spread onto the drop surface.
  *
  * The counter matters because `dragenter` and `dragleave` fire for every child
- * element crossed — trusting a single `dragleave` makes the overlay flicker as
+ * element crossed - trusting a single `dragleave` makes the overlay flicker as
  * the pointer moves over a grid.
  */
 export const useFileDrop = ({ onDrop, isEnabled }: FileDropConfig) => {

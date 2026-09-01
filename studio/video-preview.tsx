@@ -27,7 +27,7 @@ type Props = {
 
 /**
  * Plays the video rather than showing its first frame. Muted and looping to
- * match how these are used on the site, but with controls — in the Studio the
+ * match how these are used on the site, but with controls - in the Studio the
  * point is to check the footage, so scrubbing has to be possible.
  */
 export const VideoPreview = ({ renditions, posterUrl }: Props) => {
@@ -58,7 +58,7 @@ export const VideoPreview = ({ renditions, posterUrl }: Props) => {
 				display: "block",
 
 				// Sized by height, not width, so the element is exactly the shape
-				// of the video — a width-driven box capped by max-height would
+				// of the video - a width-driven box capped by max-height would
 				// letterbox instead, painting bars around anything tall
 				maxHeight: MAX_PLAYER_HEIGHT,
 				maxWidth: "100%",

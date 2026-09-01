@@ -14,7 +14,7 @@ export const r2Video = definePlugin<R2VideoPluginConfig>((options) => {
 	const resolvedConfig = resolveConfig(options);
 
 	return {
-		// The plugin's own identity, not the tool's route — 'tool.name' below is
+		// The plugin's own identity, not the tool's route - 'tool.name' below is
 		// configurable and moves the tool's URL, this never changes
 		name: "r2-video",
 

@@ -39,15 +39,15 @@ const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 }`;
 
 /**
- * Folder name in the same shape as an object key — lowercased, punctuation
- * collapsed to hyphens — so a card reads like the path it came from.
+ * Folder name in the same shape as an object key - lowercased, punctuation
+ * collapsed to hyphens - so a card reads like the path it came from.
  */
 const slugify = (name: string) => {
 	return (
 		name
 			.toLowerCase()
 			// Dropped rather than hyphenated, so a possessive reads as one word
-			// — "Hannon's" becomes `hannons`, not `hannon-s`
+			// - "Hannon's" becomes `hannons`, not `hannon-s`
 			.replace(/['\u2019]/g, "")
 			.replace(/[^a-z0-9]+/g, "-")
 			.replace(/^-+|-+$/g, "")
@@ -55,7 +55,7 @@ const slugify = (name: string) => {
 };
 
 /**
- * `folder/name`, or just the name when there's no folder to show — either
+ * `folder/name`, or just the name when there's no folder to show - either
  * because the video has none, or because the grid is already filtered to one
  * and repeating it on every card says nothing.
  */
@@ -118,18 +118,18 @@ export const ToolVideoLibrary = () => {
 		}
 	}
 
-	// Only folders that actually hold video — the image library's full tree
+	// Only folders that actually hold video - the image library's full tree
 	// would bury the handful that matter here
 	const paths = resolveFolderPaths(folders).filter((entry) => {
 		return counts.has(entry.id);
 	});
 
-	// Disabled while the upload dialog is open — that dialog owns drops from
+	// Disabled while the upload dialog is open - that dialog owns drops from
 	// then on, and a surface underneath must not also react to them
 	const { isDragging, dropProps } = useFileDrop({
 		isEnabled: !isUploadOpen,
 		onDrop: (files) => {
-			// Staged, not started — the dialog opens so folder and audio can be
+			// Staged, not started - the dialog opens so folder and audio can be
 			// set before minutes of encoding begin
 			setDroppedFiles(files);
 			setIsUploadOpen(true);
@@ -269,7 +269,7 @@ export const ToolVideoLibrary = () => {
 					asset={detailing}
 					onChanged={load}
 					onDelete={() => {
-						// Hand off rather than stacking dialogs — the delete needs the
+						// Hand off rather than stacking dialogs - the delete needs the
 						// whole surface for its usage list
 						setDeleting(detailing);
 						setDetailing(null);

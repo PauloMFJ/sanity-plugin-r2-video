@@ -2,7 +2,7 @@
  * A byte count in the unit that carries information.
  *
  * Fixed megabytes collapse a whole ladder to "0.1 MB / 0.1 MB / 0.0 MB" once
- * the clip is short, which reads as broken rather than small — so anything
+ * the clip is short, which reads as broken rather than small - so anything
  * under a megabyte is shown in kilobytes instead.
  */
 export const formatSize = (bytes: number) => {
@@ -21,7 +21,7 @@ export const formatDuration = (seconds: number) => {
 /** Average bitrate for a finished file. */
 export const formatBitrate = (bytes: number, seconds: number) => {
 	if (!seconds) {
-		return "—";
+		return "-";
 	}
 
 	return `${((bytes * 8) / seconds / 1_000_000).toFixed(2)} Mbps`;

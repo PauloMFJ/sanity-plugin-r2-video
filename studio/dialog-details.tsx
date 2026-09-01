@@ -64,7 +64,7 @@ export const DialogDetails = ({
 		fetchFolders(client, config.folders.type).then(setFolders);
 	}, [client, config.folders.type]);
 
-	// Every folder, not just the ones already holding video — the point of
+	// Every folder, not just the ones already holding video - the point of
 	// changing folder is often to move something somewhere new
 	const paths = resolveFolderPaths(folders);
 
@@ -81,8 +81,8 @@ export const DialogDetails = ({
 	};
 
 	/**
-	 * Commits both fields together. They used to save independently — folder on
-	 * change, name on its own button — which made one silently persist while the
+	 * Commits both fields together. They used to save independently - folder on
+	 * change, name on its own button - which made one silently persist while the
 	 * other sat unsaved, with no way to tell which was which.
 	 */
 	const save = async () => {

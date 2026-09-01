@@ -22,7 +22,7 @@ type Props = {
  * Encodes only the tallest tier, so the current settings can be judged before
  * committing to the whole ladder.
  *
- * The top tier is the one that varies most — quantizer-driven encoding means
+ * The top tier is the one that varies most - quantizer-driven encoding means
  * its size depends on how detailed the footage is, not on anything configured,
  * so it is also the one most likely to surprise.
  */
@@ -105,7 +105,7 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 					<Flex align="center" gap={3}>
 						<Spinner muted />
 						<Text muted size={1}>
-							Encoding top tier — {Math.round(progress * 100)}%
+							Encoding top tier - {Math.round(progress * 100)}%
 						</Text>
 					</Flex>
 				)}

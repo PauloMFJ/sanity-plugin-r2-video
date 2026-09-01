@@ -121,6 +121,11 @@ export const SCHEMA_R2_VIDEO = defineType({
 			name: "asset",
 			type: "reference",
 			to: [{ type: "r2Video.asset" }],
+
+			// New videos come from the upload button beside this input, which
+			// encodes and stores before writing the document. Sanity's own create
+			// would make an empty one the pipeline never filled in
+			options: { disableNew: true },
 		}),
 	],
 	preview: {

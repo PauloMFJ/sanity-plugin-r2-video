@@ -7,7 +7,7 @@ type FactProps = {
 	value: string;
 };
 
-/** One read-only detail. Uniform by construction — every value is a string. */
+/** One read-only detail. Uniform by construction - every value is a string. */
 const Fact = ({ label, value }: FactProps) => {
 	return (
 		<Stack gap={2}>
@@ -40,7 +40,7 @@ export const VideoSummary = ({
 		return total + rendition.size;
 	}, 0);
 
-	// Stored in encode order, which happens to be largest first — sorted here so
+	// Stored in encode order, which happens to be largest first - sorted here so
 	// the list is deliberately ordered rather than incidentally
 	const ordered = [...renditions].sort((a, b) => b.height - a.height);
 	const largest = ordered[0];

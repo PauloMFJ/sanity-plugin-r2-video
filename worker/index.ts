@@ -87,7 +87,7 @@ const storeObject = async (
 		},
 	});
 
-	// Only the key and size — the Studio builds URLs from its own configured
+	// Only the key and size - the Studio builds URLs from its own configured
 	// origin, so this Worker never needs to know one
 	return jsonResponse({ key, size: body.byteLength }, 200, headers);
 };

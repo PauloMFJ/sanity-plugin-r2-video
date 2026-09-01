@@ -2,7 +2,7 @@ import type { SanityClient } from "sanity";
 
 /**
  * A folder from the media library. These are the *same* documents the image
- * browser uses, not a parallel set — a folder made in either place shows up in
+ * browser uses, not a parallel set - a folder made in either place shows up in
  * both, so there is one place folders are defined.
  */
 export type MediaFolder = {
@@ -59,7 +59,7 @@ export const resolveFolderPaths = (folders: MediaFolder[]): FolderPath[] => {
 
 const QUERY_FOLDER_BY_NAME = `*[_type == $folderType && name == $name][0]._id`;
 
-/** A folder's id by name, or `null`. Never creates — see `resolvePosterFolder`. */
+/** A folder's id by name, or `null`. Never creates - see `resolvePosterFolder`. */
 export const findFolderByName = (
 	client: SanityClient,
 	folderType: string,

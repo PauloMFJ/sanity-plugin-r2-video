@@ -17,7 +17,7 @@ import {
 /**
  * The heights worth encoding for a source of the given height, largest first.
  * Never upscales, so a 900p source stops at 720p. A source shorter than every
- * tier falls back to the shortest one, which does upscale — one rendition
+ * tier falls back to the shortest one, which does upscale - one rendition
  * beats none, and no realistic source is that small.
  */
 const resolveHeights = (sourceHeight: number, heights: number[]) => {
@@ -53,7 +53,7 @@ export type TranscodeRequest = {
 
 	/**
 	 * Encode only the tallest tier and stop. Used to show what the current
-	 * settings actually produce before committing to the whole ladder — the top
+	 * settings actually produce before committing to the whole ladder - the top
 	 * tier is the one that varies most, and the one most likely to surprise.
 	 */
 	topTierOnly?: boolean;
@@ -86,7 +86,7 @@ const post = (message: TranscodeMessage, transfer: Transferable[] = []) => {
 
 /**
  * The first frame, as a JPEG. Sanity re-encodes on delivery, so this only has
- * to survive one pass — the size saving over PNG is worth far more here.
+ * to survive one pass - the size saving over PNG is worth far more here.
  */
 const extractPoster = async (track: InputVideoTrack) => {
 	const frame = await new CanvasSink(track).getCanvas(0);
@@ -110,8 +110,8 @@ const extractPoster = async (track: InputVideoTrack) => {
  * Encodes one rendition and returns the finished MP4 bytes.
  *
  * When `isNative`, no size or quality is requested at all. Mediabunny only
- * transcodes if something forces it to — a resize, a codec change, or a quality
- * setting — so omitting all three takes its packet-copy fast path: no
+ * transcodes if something forces it to - a resize, a codec change, or a quality
+ * setting - so omitting all three takes its packet-copy fast path: no
  * re-encode, no generation loss, and near-instant.
  */
 const encodeRendition = async (

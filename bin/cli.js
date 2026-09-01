@@ -9,7 +9,7 @@ const USAGE = `
   sanity-plugin-r2-video setup worker [directory]
 
   Writes a deployable Cloudflare Worker: A wrangler config filled in from your
-  answers, and an entry point that re-exports this package's endpoint — so
+  answers, and an entry point that re-exports this package's endpoint - so
   upgrading the package upgrades the Worker.
 
   directory   Where to write it. Defaults to ./r2-video-worker
@@ -40,8 +40,8 @@ const parseFlags = (argv) => {
 
 /**
  * The Worker re-exports the package's handler rather than copying it, so
- * upgrading the package upgrades the deployed endpoint. Only identity —
- * name, account, bucket, origins — is generated.
+ * upgrading the package upgrades the deployed endpoint. Only identity -
+ * name, account, bucket, origins - is generated.
  */
 const ENTRY = `// The endpoint itself lives in the plugin, so upgrading the package upgrades
 // this Worker. Only deployment identity belongs here, in \`wrangler.jsonc\`.
@@ -67,7 +67,7 @@ const ask = async (rl, question, fallback) => {
 
 /**
  * Only the values that differ per deployment. The binding name, the entry point
- * and the compatibility date are fixed — the Worker source expects them, so
+ * and the compatibility date are fixed - the Worker source expects them, so
  * asking would only create a way to get them wrong.
  */
 const createConfig = ({ name, accountId, bucket, origins }) => {
@@ -78,7 +78,7 @@ const createConfig = ({ name, accountId, bucket, origins }) => {
 	"main": "src/index.ts",
 	"compatibility_date": "2026-08-01",
 
-	// The binding is what keeps R2 credentials out of your repo entirely — the
+	// The binding is what keeps R2 credentials out of your repo entirely - the
 	// Worker reaches the bucket directly, so nothing has to be signed or stored
 	"r2_buckets": [
 		{
@@ -93,7 +93,7 @@ const createConfig = ({ name, accountId, bucket, origins }) => {
 	}
 
 	// UPLOAD_TOKEN is set separately, with: wrangler secret put UPLOAD_TOKEN
-	// Not because it's secret — the Studio ships the same value to browsers —
+	// Not because it's secret - the Studio ships the same value to browsers -
 	// but so it stays out of this file, out of git, and out of deploy logs
 }
 `;

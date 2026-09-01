@@ -21,7 +21,7 @@ export const findReferencingDocuments = (client: SanityClient, id: string) => {
  *
  * The document goes before the poster, because it holds the strong reference
  * that would otherwise 409. And Sanity goes before R2, because the two failure
- * modes are not symmetric — an orphaned object is invisible and costs pennies,
+ * modes are not symmetric - an orphaned object is invisible and costs pennies,
  * whereas a document pointing at deleted media breaks the site.
  */
 export const deleteVideoAsset = async (
@@ -36,7 +36,7 @@ export const deleteVideoAsset = async (
 	try {
 		await client.delete(asset.poster.asset._ref);
 	} catch (error) {
-		console.info(`Kept poster for '${asset.filename}' — still in use.`, error);
+		console.info(`Kept poster for '${asset.filename}' - still in use.`, error);
 	}
 
 	await deleteObjects(

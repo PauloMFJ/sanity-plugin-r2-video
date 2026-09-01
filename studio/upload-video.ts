@@ -31,14 +31,14 @@ export type UploadRequest = {
 
 /**
  * A filename without its extension. The container is an implementation detail
- * — a source may arrive as .mov and leave as .mp4 — so the name shouldn't claim
+ * - a source may arrive as .mov and leave as .mp4 - so the name shouldn't claim
  * one. Leaves an extensionless name alone.
  */
 const dropExtension = (name: string) => name.replace(/\.[^./\\]+$/, "");
 
 /**
  * Alphabet for upload ids. 32 characters, so a random byte masked to 5 bits
- * maps to one with no modulo bias — and no `i`, `l`, `o` or `u`, which keeps a
+ * maps to one with no modulo bias - and no `i`, `l`, `o` or `u`, which keeps a
  * key readable aloud and unmistakable in a bucket listing.
  */
 const ID_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
@@ -47,7 +47,7 @@ const ID_LENGTH = 12;
 /**
  * A short id for one upload's objects.
  *
- * Twelve characters of this alphabet is 32^12 — around 1.2 x 10^18 values, so
+ * Twelve characters of this alphabet is 32^12 - around 1.2 x 10^18 values, so
  * even a library of a million videos has a collision chance under 1 in 10^6.
  * A full UUID is three times the length for headroom nothing here needs.
  */
@@ -65,7 +65,7 @@ type Written = {
 /**
  * Removes what a failed upload got as far as creating.
  *
- * Never throws. Whatever broke the upload — usually the network — is likely to
+ * Never throws. Whatever broke the upload - usually the network - is likely to
  * break these deletes too, and "upload failed, and so did the cleanup" buries
  * the message that actually matters. Anything left behind is unreferenced, so
  * the orphan sweep can collect it later.
@@ -154,7 +154,7 @@ export const uploadVideo = async ({
 		for (const [index, rendition] of encoded.renditions.entries()) {
 			const key = resolveRenditionPath(id, rendition.height);
 
-			// Recorded before the upload, not after — a request that times out may
+			// Recorded before the upload, not after - a request that times out may
 			// still have stored the object, and an untracked key is unreachable
 			written.keys.push(key);
 

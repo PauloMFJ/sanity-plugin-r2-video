@@ -7,7 +7,7 @@ A video plugin for Sanity Studio that encodes in the browser and stores plain MP
 
 ## Introduction
 
-An editor drops in one file. Out come **renditions** — one MP4 per height you configured, plus the first frame as a poster:
+An editor drops in one file. Out come **renditions** - one MP4 per height you configured, plus the first frame as a poster:
 
 ```
 j6w3wy2bd0jq/270.mp4     840 KB

@@ -25,7 +25,7 @@ type Props = {
 /**
  * Finds and removes storage nothing points at.
  *
- * These accumulate when an upload dies without rolling back — a closed tab or a
+ * These accumulate when an upload dies without rolling back - a closed tab or a
  * crash. Everything listed is unreferenced by definition, so removing it can't
  * break a page, but it still shows the counts before doing anything.
  */
@@ -117,7 +117,7 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 
 					{orphans && !isDone && total === 0 && (
 						<Text muted size={1}>
-							Nothing to clean up — every stored file belongs to a video.
+							Nothing to clean up - every stored file belongs to a video.
 						</Text>
 					)}
 
