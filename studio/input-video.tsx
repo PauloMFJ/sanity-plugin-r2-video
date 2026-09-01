@@ -49,7 +49,7 @@ export const InputVideo = (props: ObjectInputProps<R2VideoValue>) => {
 		setIsUploadOpen(true);
 	};
 
-	const { isDragging, dropProps } = useFileDrop({
+	const { isDragging, isRejected, dropProps } = useFileDrop({
 		onDrop: dropped,
 		isEnabled: !isDisabled && !isUploadOpen,
 	});
@@ -67,7 +67,7 @@ export const InputVideo = (props: ObjectInputProps<R2VideoValue>) => {
 
 	return (
 		<Stack gap={3} style={{ position: "relative" }} {...dropProps}>
-			{isDragging && <DropToUpload />}
+			{isDragging && <DropToUpload isRejected={isRejected} />}
 
 			<Flex gap={1}>
 				<Box flex={1}>

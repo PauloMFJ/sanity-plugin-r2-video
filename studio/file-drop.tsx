@@ -1,3 +1,4 @@
+import { AccessDeniedIcon } from "@sanity/icons/AccessDenied";
 import { UploadIcon } from "@sanity/icons/Upload";
 import { Card, Flex, Text } from "@sanity/ui";
 import { type DragEvent, useEffect, useRef, useState } from "react";
@@ -30,20 +31,37 @@ export const DragOverlay = () => {
 	);
 };
 
+/** Whether a drag is carrying something this field can actually take. */
+const hasVideoFile = (transfer: DataTransfer) => {
+	return Array.from(transfer.items).some((item) => {
+		if (item.kind !== "file") {
+			return false;
+		}
+
+		// A drag reports the type but never the name, and some sources report no
+		// type at all. Those are let through rather than rejected on a guess
+		return item.type === "" || item.type.startsWith("video/");
+	});
+};
+
+type DropToUploadProps = {
+	isRejected: boolean;
+};
+
 /**
  * The drop state Sanity's own image field uses: the input stays visible and
- * ghosts through a primary-toned wash, rather than being hidden behind a scrim.
- * Fixed to the surface it covers, and transparent to the pointer so the drop
- * lands on the handlers underneath.
+ * ghosts through a tinted wash, rather than being hidden behind a scrim. It
+ * bleeds a few pixels past the input it covers, the way the native one does,
+ * and is transparent to the pointer so the drop lands on the handlers under it.
  */
-export const DropToUpload = () => {
+export const DropToUpload = ({ isRejected }: DropToUploadProps) => {
 	return (
 		<Card
 			radius={2}
-			tone="primary"
+			tone={isRejected ? "critical" : "primary"}
 			style={{
 				position: "absolute",
-				inset: 0,
+				inset: -4,
 				zIndex: 3,
 				opacity: 0.9,
 				pointerEvents: "none",
@@ -51,9 +69,11 @@ export const DropToUpload = () => {
 		>
 			<Flex align="center" gap={2} justify="center" style={{ height: "100%" }}>
 				<Text size={2}>
-					<UploadIcon />
+					{isRejected ? <AccessDeniedIcon /> : <UploadIcon />}
 				</Text>
-				<Text size={2}>Drop to upload</Text>
+				<Text size={2}>
+					{isRejected ? "Can't upload this file here" : "Drop to upload"}
+				</Text>
 			</Flex>
 		</Card>
 	);
@@ -79,11 +99,13 @@ type FileDropConfig = {
  */
 export const useFileDrop = ({ onDrop, isEnabled }: FileDropConfig) => {
 	const [isDragging, setIsDragging] = useState(false);
+	const [isRejected, setIsRejected] = useState(false);
 	const depth = useRef(0);
 
 	const reset = () => {
 		depth.current = 0;
 		setIsDragging(false);
+		setIsRejected(false);
 	};
 
 	// A surface can be disabled mid-drag by a dialog opening over it, which
@@ -104,6 +126,7 @@ export const useFileDrop = ({ onDrop, isEnabled }: FileDropConfig) => {
 		event.preventDefault();
 		depth.current += 1;
 		setIsDragging(true);
+		setIsRejected(!hasVideoFile(event.dataTransfer));
 	};
 
 	const dragLeft = (event: DragEvent) => {
@@ -144,6 +167,7 @@ export const useFileDrop = ({ onDrop, isEnabled }: FileDropConfig) => {
 
 	return {
 		isDragging: isDragging && isEnabled,
+		isRejected,
 		dropProps: {
 			onDragEnter: dragEntered,
 			onDragLeave: dragLeft,
