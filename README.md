@@ -269,6 +269,26 @@ pnpm run build      # tsup: ESM + types into dist
 
 `./worker` ships as TypeScript. Wrangler compiles it, and the generated Worker extends `worker/tsconfig.json` for the compiler options it was written against.
 
+### Linking it into a Studio
+
+Point a Studio at a checkout with a `link:` override, then allow this directory in Vite. The encoder is loaded as a worker by URL rather than imported, so it never enters the module graph Vite serves by default, and every upload fails on a 403 without this:
+
+```ts
+// sanity.cli.ts
+vite: (config) => ({
+  ...config,
+  server: {
+    ...config.server,
+    fs: {
+      ...config.server?.fs,
+      allow: [...(config.server?.fs?.allow ?? []), "/path/to/sanity-plugin-r2-video"],
+    },
+  },
+});
+```
+
+Vite doesn't watch a linked package, so a rebuild needs a hard reload rather than arriving over HMR.
+
 ## License
 
 MIT
