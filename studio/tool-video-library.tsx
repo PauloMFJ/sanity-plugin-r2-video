@@ -24,20 +24,24 @@ import { FolderSidebar } from "./folder-sidebar";
 import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
 import type { R2VideoAsset } from "./types";
 
+/**
+ * Every field the upload pipeline writes is coalesced, because a document it
+ * never finished - Sanity's own create button made these, before the reference
+ * field disabled it - has none of them, and one of those in the dataset used to
+ * take the whole tool down. Showing it as an empty card is what makes it
+ * deletable.
+ *
+ * `poster` and `uploadedAt` are left alone: both already read as optional
+ * everywhere they're used.
+ */
 const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	_id,
 	_type,
-
-	// Both are absent on a document the pipeline never finished, and every
-	// consumer of this query treats them as present
 	"filename": coalesce(filename, ""),
 	folder,
 	poster,
-	duration,
-	hasAudio,
-
-	// A document the pipeline never finished - Sanity's own create button made
-	// these before the reference field disabled it - has no renditions at all
+	"duration": coalesce(duration, 0),
+	"hasAudio": coalesce(hasAudio, false),
 	"renditions": coalesce(renditions, []),
 	uploadedAt,
 	"posterUrl": poster.asset->url,
