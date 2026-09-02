@@ -29,7 +29,9 @@ const resolveHeights = (sourceHeight: number, heights: number[]) => {
 
 /**
  * The width of a rendition at the given height. h264 requires even dimensions,
- * so the derived width rounds to the nearest even number.
+ * so the derived width rounds to the nearest even number. That rounding leaves
+ * the box up to a pixel off the source's true aspect, which the encode covers
+ * rather than pads - see the `fit` below.
  */
 const resolveWidth = (height: number, aspectRatio: number): number => {
 	return Math.round((height * aspectRatio) / 2) * 2;
@@ -145,7 +147,11 @@ const encodeRendition = async (
 			: {
 					width,
 					height,
-					fit: "contain",
+					// Cover, not contain: the even-width rounding above means the
+					// box rarely matches the source aspect exactly, and contain
+					// fills that sub-pixel gap with black bars that survive into
+					// the file. Cover crops the under-a-pixel overflow instead
+					fit: "cover",
 					codec: options.videoCodec,
 					quality,
 				},
