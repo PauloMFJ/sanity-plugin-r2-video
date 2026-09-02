@@ -18,6 +18,16 @@ export const formatDuration = (seconds: number) => {
 	return `${seconds.toFixed(1)}s`;
 };
 
+/** A count with its noun, pluralised the boring way. */
+export const pluralize = (count: number, noun: string) => {
+	return `${count} ${noun}${count === 1 ? "" : "s"}`;
+};
+
+/** Whatever was thrown, as something showable. */
+export const toMessage = (error: unknown) => {
+	return error instanceof Error ? error.message : String(error);
+};
+
 /** Average bitrate for a finished file. */
 export const formatBitrate = (bytes: number, seconds: number) => {
 	if (!seconds) {

@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { SanityClient } from "sanity";
+import { useR2VideoClient } from "./config-context";
 
 /**
  * A folder from the media library. These are the *same* documents the image
@@ -89,4 +91,16 @@ export const resolvePosterFolder = async (
 
 	const created = await client.create({ _type: folderType, name });
 	return created._id;
+};
+
+/** Every media library folder, with paths ready for a picker. */
+export const useFolders = () => {
+	const { config, client } = useR2VideoClient();
+	const [folders, setFolders] = useState<MediaFolder[]>([]);
+
+	useEffect(() => {
+		fetchFolders(client, config.folders.type).then(setFolders);
+	}, [client, config.folders.type]);
+
+	return { folders, paths: resolveFolderPaths(folders) };
 };

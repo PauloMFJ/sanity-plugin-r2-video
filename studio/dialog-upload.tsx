@@ -1,14 +1,14 @@
 import { UploadIcon } from "@sanity/icons/Upload";
 import { Box, Button, Card, Dialog, Flex, Stack, Text } from "@sanity/ui";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useClient } from "sanity";
-import { useR2VideoConfig } from "./config-context";
+import { useR2VideoClient } from "./config-context";
 import { DropToUpload, useFileDrop } from "./file-drop";
-import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
-import { formatSize } from "./format";
+import { useFolders } from "./folders";
+import { formatSize, pluralize, toMessage } from "./format";
 import { PreviewEncode } from "./preview-encode";
 import { canEncodeLadder } from "./transcode";
 import type { R2VideoAsset } from "./types";
+import { DialogActions } from "./ui";
 import { UnsupportedBrowser } from "./unsupported-browser";
 import { UploadSettings } from "./upload-settings";
 import { type UploadProgress, uploadVideo } from "./upload-video";
@@ -69,10 +69,6 @@ const describe = (item: QueueItem) => {
 	return `${STAGE_LABELS[stage]} ${label} · ${Math.round(progress * 100)}%`;
 };
 
-const countLabel = (count: number) => {
-	return count === 1 ? "1 video" : `${count} video(s)`;
-};
-
 const toItem = (file: File): QueueItem => ({
 	id: crypto.randomUUID(),
 	file,
@@ -104,11 +100,10 @@ export const DialogUpload = ({
 	onUploaded,
 	onClose,
 }: Props) => {
-	const config = useR2VideoConfig();
-	const client = useClient({ apiVersion: config.apiVersion });
+	const { config, client } = useR2VideoClient();
+	const { paths } = useFolders();
 
 	const [canEncode, setCanEncode] = useState<boolean | null>(null);
-	const [folders, setFolders] = useState<MediaFolder[]>([]);
 	const [targetFolder, setTargetFolder] = useState(folderId);
 	const [keepAudio, setKeepAudio] = useState(false);
 	const [quality, setQuality] = useState(config.encoding.quality);
@@ -126,10 +121,6 @@ export const DialogUpload = ({
 		canEncodeLadder(config.encoding.videoCodec).then(setCanEncode);
 	}, [config.encoding.videoCodec]);
 
-	useEffect(() => {
-		fetchFolders(client, config.folders.type).then(setFolders);
-	}, [client, config.folders.type]);
-
 	// Config supplies the starting point; each upload can then diverge without
 	// touching the Studio's own defaults.
 	//
@@ -140,7 +131,6 @@ export const DialogUpload = ({
 		return { ...config.encoding, quality, preferBitrate };
 	}, [config.encoding, quality, preferBitrate]);
 
-	const paths = resolveFolderPaths(folders);
 	const pending = items.filter((item) => item.status === "pending");
 	const isBusy = items.some((item) => item.status === "working");
 	const canStart = pending.length > 0 && !isBusy && canEncode !== false;
@@ -180,7 +170,7 @@ export const DialogUpload = ({
 				update(item.id, {
 					status: "failed",
 					progress: null,
-					error: error instanceof Error ? error.message : String(error),
+					error: toMessage(error),
 				});
 			}
 		}
@@ -233,30 +223,21 @@ export const DialogUpload = ({
 			width={1}
 			onClose={isBusy ? undefined : onClose}
 			footer={
-				<Card borderTop padding={2}>
-					<Flex gap={2}>
-						<Box flex={1}>
-							<Button
-								disabled={isBusy}
-								mode="ghost"
-								text={items.length > 0 && !canStart ? "Done" : "Cancel"}
-								width="fill"
-								onClick={onClose}
-							/>
-						</Box>
-						<Box flex={1}>
-							<Button
-								disabled={!canStart}
-								text={
-									isBusy ? "Encoding…" : `Upload ${countLabel(pending.length)}`
-								}
-								tone="primary"
-								width="fill"
-								onClick={confirmed}
-							/>
-						</Box>
-					</Flex>
-				</Card>
+				<DialogActions
+					cancel={{
+						text: items.length > 0 && !canStart ? "Done" : "Cancel",
+						disabled: isBusy,
+						onClick: onClose,
+					}}
+					confirm={{
+						text: isBusy
+							? "Encoding…"
+							: `Upload ${pluralize(pending.length, "video")}`,
+						tone: "primary",
+						disabled: !canStart,
+						onClick: confirmed,
+					}}
+				/>
 			}
 		>
 			<Card padding={4}>
@@ -312,7 +293,7 @@ export const DialogUpload = ({
 					{items.length > 0 && (
 						<Stack gap={3}>
 							<Text muted size={1} weight="medium">
-								{countLabel(items.length)}
+								{pluralize(items.length, "video")}
 							</Text>
 							<Stack gap={2}>
 								{items.map((item) => (

@@ -1,8 +1,9 @@
-import { Box, Button, Card, Flex, Spinner, Stack, Text } from "@sanity/ui";
+import { Box, Button, Card, Flex, Stack, Text } from "@sanity/ui";
 import { useEffect, useState } from "react";
-import { formatBitrate, formatSize } from "./format";
+import { formatBitrate, formatSize, toMessage } from "./format";
 import { transcodeVideo } from "./transcode";
 import type { TranscodeOptions } from "./transcode.worker";
+import { Loading, Notice } from "./ui";
 
 export type EncodePreview = {
 	url: string;
@@ -78,7 +79,7 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 				duration: result.duration,
 			});
 		} catch (caught) {
-			setError(caught instanceof Error ? caught.message : String(caught));
+			setError(toMessage(caught));
 		}
 
 		setIsEncoding(false);
@@ -102,19 +103,10 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 				</Flex>
 
 				{isEncoding && (
-					<Flex align="center" gap={3}>
-						<Spinner muted />
-						<Text muted size={1}>
-							Encoding top tier - {Math.round(progress * 100)}%
-						</Text>
-					</Flex>
+					<Loading>Encoding top tier - {Math.round(progress * 100)}%</Loading>
 				)}
 
-				{error && (
-					<Card padding={3} radius={2} tone="critical">
-						<Text size={1}>{error}</Text>
-					</Card>
-				)}
+				{error && <Notice tone="critical">{error}</Notice>}
 
 				{preview && !isEncoding && (
 					<Stack gap={3}>

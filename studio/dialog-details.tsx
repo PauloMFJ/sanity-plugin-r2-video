@@ -10,11 +10,12 @@ import {
 	Text,
 	TextInput,
 } from "@sanity/ui";
-import { useEffect, useState } from "react";
-import { useClient } from "sanity";
-import { useR2VideoConfig } from "./config-context";
-import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
+import { useState } from "react";
+import { useR2VideoClient } from "./config-context";
+import { useFolders } from "./folders";
+import { toMessage } from "./format";
 import type { LibraryAsset } from "./tool-video-library";
+import { DialogActions, Notice } from "./ui";
 import { VideoPreview } from "./video-preview";
 import { VideoSummary } from "./video-summary";
 
@@ -49,24 +50,17 @@ export const DialogDetails = ({
 	onDelete,
 	onClose,
 }: Props) => {
-	const config = useR2VideoConfig();
-	const client = useClient({ apiVersion: config.apiVersion });
+	const { client } = useR2VideoClient();
 
-	const [folders, setFolders] = useState<MediaFolder[]>([]);
+	// Every folder, not just the ones already holding video - the point of
+	// changing folder is often to move something somewhere new
+	const { paths } = useFolders();
 	const [folderId, setFolderId] = useState(
 		asset.folder ? asset.folder._ref : "",
 	);
 	const [filename, setFilename] = useState(asset.filename);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		fetchFolders(client, config.folders.type).then(setFolders);
-	}, [client, config.folders.type]);
-
-	// Every folder, not just the ones already holding video - the point of
-	// changing folder is often to move something somewhere new
-	const paths = resolveFolderPaths(folders);
 
 	// A document the upload pipeline never finished writing. There is nothing to
 	// play, nothing to rename that matters, and no objects behind it - the only
@@ -128,7 +122,7 @@ export const DialogDetails = ({
 			onChanged();
 		} catch (caught) {
 			reset();
-			setError(caught instanceof Error ? caught.message : String(caught));
+			setError(toMessage(caught));
 		}
 
 		setIsSaving(false);
@@ -141,8 +135,8 @@ export const DialogDetails = ({
 			width={1}
 			onClose={isSaving ? undefined : onClose}
 			footer={
-				<Card borderTop padding={2}>
-					<Flex gap={2}>
+				<DialogActions
+					aside={
 						<Button
 							aria-label="Delete video"
 							disabled={isSaving}
@@ -151,40 +145,31 @@ export const DialogDetails = ({
 							tone="critical"
 							onClick={onDelete}
 						/>
-
-						<Box flex={1}>
-							<Button
-								disabled={isSaving}
-								mode="ghost"
-								text={isDirty ? "Discard" : "Close"}
-								width="fill"
-								onClick={isDirty ? reset : onClose}
-							/>
-						</Box>
-
-						{!isBroken && (
-							<Box flex={1}>
-								<Button
-									disabled={isSaving || !isDirty}
-									text={isSaving ? "Saving…" : "Save changes"}
-									tone="primary"
-									width="fill"
-									onClick={save}
-								/>
-							</Box>
-						)}
-					</Flex>
-				</Card>
+					}
+					cancel={{
+						text: isDirty ? "Discard" : "Close",
+						disabled: isSaving,
+						onClick: isDirty ? reset : onClose,
+					}}
+					confirm={
+						isBroken
+							? undefined
+							: {
+									text: isSaving ? "Saving…" : "Save changes",
+									tone: "primary",
+									disabled: isSaving || !isDirty,
+									onClick: save,
+								}
+					}
+				/>
 			}
 		>
 			<Card padding={4}>
 				{isBroken ? (
-					<Card padding={4} radius={2} tone="caution">
-						<Text size={1}>
-							This video was never finished uploading, so it has no renditions
-							and nothing stored behind it. Delete it.
-						</Text>
-					</Card>
+					<Notice tone="caution">
+						This video was never finished uploading, so it has no renditions and
+						nothing stored behind it. Delete it.
+					</Notice>
 				) : (
 					<Stack gap={5}>
 						<VideoPreview
@@ -228,11 +213,7 @@ export const DialogDetails = ({
 							</Box>
 						</Flex>
 
-						{error && (
-							<Card padding={3} radius={2} tone="critical">
-								<Text size={1}>{error}</Text>
-							</Card>
-						)}
+						{error && <Notice tone="critical">{error}</Notice>}
 
 						<VideoSummary
 							duration={asset.duration}

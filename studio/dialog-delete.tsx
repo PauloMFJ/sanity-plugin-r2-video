@@ -1,23 +1,14 @@
-import {
-	Box,
-	Button,
-	Card,
-	Dialog,
-	Flex,
-	Spinner,
-	Stack,
-	Text,
-} from "@sanity/ui";
+import { Card, Dialog, Stack, Text } from "@sanity/ui";
 import { useEffect, useState } from "react";
-import { useClient } from "sanity";
-import { useR2VideoConfig } from "./config-context";
+import { useR2VideoClient } from "./config-context";
 import {
 	deleteVideoAsset,
 	findReferencingDocuments,
 	type ReferencingDocument,
 } from "./delete-video";
-import { formatSize } from "./format";
+import { formatSize, toMessage } from "./format";
 import type { R2VideoAsset } from "./types";
+import { DialogActions, Loading, Notice } from "./ui";
 
 type Props = {
 	asset: R2VideoAsset;
@@ -31,8 +22,7 @@ type Props = {
  * document that would break - which blocks the delete outright.
  */
 export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
-	const config = useR2VideoConfig();
-	const client = useClient({ apiVersion: config.apiVersion });
+	const { config, client } = useR2VideoClient();
 
 	const [blockers, setBlockers] = useState<ReferencingDocument[] | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -54,7 +44,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 			await deleteVideoAsset(client, config, asset);
 			onDeleted();
 		} catch (caught) {
-			setError(caught instanceof Error ? caught.message : String(caught));
+			setError(toMessage(caught));
 			setIsDeleting(false);
 		}
 	};
@@ -72,28 +62,15 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 			width={1}
 			onClose={isDeleting ? undefined : onClose}
 			footer={
-				<Card borderTop padding={2}>
-					<Flex gap={2}>
-						<Box flex={1}>
-							<Button
-								disabled={isDeleting}
-								mode="ghost"
-								text="Cancel"
-								width="fill"
-								onClick={onClose}
-							/>
-						</Box>
-						<Box flex={1}>
-							<Button
-								disabled={isDeleting || isBlocked || blockers === null}
-								text={isDeleting ? "Deleting…" : "Delete"}
-								tone="critical"
-								width="fill"
-								onClick={confirmed}
-							/>
-						</Box>
-					</Flex>
-				</Card>
+				<DialogActions
+					cancel={{ text: "Cancel", disabled: isDeleting, onClick: onClose }}
+					confirm={{
+						text: isDeleting ? "Deleting…" : "Delete",
+						tone: "critical",
+						disabled: isDeleting || isBlocked || blockers === null,
+						onClick: confirmed,
+					}}
+				/>
 			}
 		>
 			<Card padding={4}>
@@ -104,20 +81,12 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 					</Text>
 
 					{blockers === null && !error && (
-						<Flex align="center" gap={3}>
-							<Spinner muted />
-							<Text muted size={1}>
-								Checking where it's used…
-							</Text>
-						</Flex>
+						<Loading>Checking where it's used…</Loading>
 					)}
 
 					{isBlocked && (
-						<Card padding={3} radius={2} tone="caution">
+						<Notice title="Still in use" tone="caution">
 							<Stack gap={3}>
-								<Text size={1} weight="semibold">
-									Still in use
-								</Text>
 								<Text muted size={1}>
 									Remove it from these documents first:
 								</Text>
@@ -127,7 +96,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 									</Text>
 								))}
 							</Stack>
-						</Card>
+						</Notice>
 					)}
 
 					{blockers !== null && blockers.length === 0 && (
@@ -136,11 +105,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 						</Text>
 					)}
 
-					{error && (
-						<Card padding={3} radius={2} tone="critical">
-							<Text size={1}>{error}</Text>
-						</Card>
-					)}
+					{error && <Notice tone="critical">{error}</Notice>}
 				</Stack>
 			</Card>
 		</Dialog>

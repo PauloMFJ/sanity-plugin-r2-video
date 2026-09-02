@@ -1,21 +1,9 @@
-import {
-	Box,
-	Button,
-	Card,
-	Dialog,
-	Flex,
-	Spinner,
-	Stack,
-	Text,
-} from "@sanity/ui";
+import { Card, Dialog, Stack, Text } from "@sanity/ui";
 import { useEffect, useState } from "react";
-import { useClient } from "sanity";
-import { useR2VideoConfig } from "./config-context";
+import { useR2VideoClient } from "./config-context";
+import { pluralize, toMessage } from "./format";
 import { findOrphans, type Orphans, removeOrphans } from "./orphans";
-
-const countLabel = (count: number, noun: string) => {
-	return `${count} ${noun}${count === 1 ? "" : "s"}`;
-};
+import { DialogActions, Loading, Notice } from "./ui";
 
 type Props = {
 	onCleaned: () => void;
@@ -30,8 +18,7 @@ type Props = {
  * break a page, but it still shows the counts before doing anything.
  */
 export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
-	const config = useR2VideoConfig();
-	const client = useClient({ apiVersion: config.apiVersion });
+	const { config, client } = useR2VideoClient();
 
 	const [orphans, setOrphans] = useState<Orphans | null>(null);
 	const [isRemoving, setIsRemoving] = useState(false);
@@ -42,7 +29,7 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 		findOrphans(client, config)
 			.then(setOrphans)
 			.catch((caught: unknown) => {
-				setError(caught instanceof Error ? caught.message : String(caught));
+				setError(toMessage(caught));
 			});
 	}, [client, config]);
 
@@ -59,7 +46,7 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 			setIsDone(true);
 			onCleaned();
 		} catch (caught) {
-			setError(caught instanceof Error ? caught.message : String(caught));
+			setError(toMessage(caught));
 		}
 
 		setIsRemoving(false);
@@ -74,46 +61,28 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 			width={1}
 			onClose={isRemoving ? undefined : onClose}
 			footer={
-				<Card borderTop padding={2}>
-					<Flex gap={2}>
-						<Box flex={1}>
-							<Button
-								disabled={isRemoving}
-								mode="ghost"
-								text={isDone ? "Done" : "Cancel"}
-								width="fill"
-								onClick={onClose}
-							/>
-						</Box>
-						<Box flex={1}>
-							<Button
-								disabled={isRemoving || isDone || total === 0}
-								text={isRemoving ? "Removing…" : "Remove"}
-								tone="critical"
-								width="fill"
-								onClick={confirmed}
-							/>
-						</Box>
-					</Flex>
-				</Card>
+				<DialogActions
+					cancel={{
+						text: isDone ? "Done" : "Cancel",
+						disabled: isRemoving,
+						onClick: onClose,
+					}}
+					confirm={{
+						text: isRemoving ? "Removing…" : "Remove",
+						tone: "critical",
+						disabled: isRemoving || isDone || total === 0,
+						onClick: confirmed,
+					}}
+				/>
 			}
 		>
 			<Card padding={4}>
 				<Stack gap={4}>
 					{!orphans && !error && (
-						<Flex align="center" gap={3}>
-							<Spinner muted />
-							<Text muted size={1}>
-								Comparing storage against the library…
-							</Text>
-						</Flex>
+						<Loading>Comparing storage against the library…</Loading>
 					)}
 
-					{isDone && (
-						<Card padding={3} radius={2} tone="positive">
-							<Text size={1}>Removed.</Text>
-						</Card>
-					)}
+					{isDone && <Notice tone="positive">Removed.</Notice>}
 
 					{orphans && !isDone && total === 0 && (
 						<Text muted size={1}>
@@ -124,8 +93,8 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 					{orphans && !isDone && total > 0 && (
 						<Stack gap={3}>
 							<Text size={1}>
-								Found {countLabel(orphans.keys.length, "orphaned file")} in R2
-								and {countLabel(orphans.posterIds.length, "unused poster")} in
+								Found {pluralize(orphans.keys.length, "orphaned file")} in R2
+								and {pluralize(orphans.posterIds.length, "unused poster")} in
 								Sanity.
 							</Text>
 							<Text muted size={1}>
@@ -135,11 +104,7 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 						</Stack>
 					)}
 
-					{error && (
-						<Card padding={3} radius={2} tone="critical">
-							<Text size={1}>{error}</Text>
-						</Card>
-					)}
+					{error && <Notice tone="critical">{error}</Notice>}
 				</Stack>
 			</Card>
 		</Dialog>

@@ -7,14 +7,12 @@ import {
 	Card,
 	Flex,
 	Grid,
-	Spinner,
 	Stack,
 	Text,
 	TextInput,
 } from "@sanity/ui";
 import { useCallback, useEffect, useState } from "react";
-import { useClient } from "sanity";
-import { useR2VideoConfig } from "./config-context";
+import { useR2VideoClient } from "./config-context";
 import { DialogDelete } from "./dialog-delete";
 import { DialogDetails } from "./dialog-details";
 import { DialogOrphans } from "./dialog-orphans";
@@ -23,6 +21,7 @@ import { DropToUpload, useFileDrop } from "./file-drop";
 import { FolderSidebar } from "./folder-sidebar";
 import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
 import type { R2VideoAsset } from "./types";
+import { Loading } from "./ui";
 
 /**
  * Every field the upload pipeline writes is coalesced, because a document it
@@ -99,8 +98,7 @@ const matches = (asset: LibraryAsset, search: string) => {
 };
 
 export const ToolVideoLibrary = () => {
-	const config = useR2VideoConfig();
-	const client = useClient({ apiVersion: config.apiVersion });
+	const { config, client } = useR2VideoClient();
 
 	const [assets, setAssets] = useState<LibraryAsset[] | null>(null);
 	const [folders, setFolders] = useState<MediaFolder[]>([]);
@@ -201,12 +199,9 @@ export const ToolVideoLibrary = () => {
 						</Flex>
 
 						{assets === null && (
-							<Flex align="center" gap={3} padding={4}>
-								<Spinner muted />
-								<Text muted size={1}>
-									Loading library…
-								</Text>
-							</Flex>
+							<Box padding={4}>
+								<Loading>Loading library…</Loading>
+							</Box>
 						)}
 
 						{assets !== null && visible.length === 0 && (

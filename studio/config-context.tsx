@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext } from "react";
+import { useClient } from "sanity";
 import type { ResolvedR2VideoConfig } from "./defaults";
 
 const R2VideoConfigContext = createContext<ResolvedR2VideoConfig | null>(null);
@@ -25,4 +26,11 @@ export const useR2VideoConfig = () => {
 	}
 
 	return config;
+};
+
+/** The config, and a client on the API version it names. */
+export const useR2VideoClient = () => {
+	const config = useR2VideoConfig();
+	const client = useClient({ apiVersion: config.apiVersion });
+	return { config, client };
 };

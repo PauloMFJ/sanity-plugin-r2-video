@@ -1,6 +1,6 @@
-import { Card, Text } from "@sanity/ui";
 import { useR2VideoConfig } from "./config-context";
 import type { R2VideoRendition } from "./types";
+import { Notice } from "./ui";
 
 /** Tallest the player may render, whatever the source's shape. */
 const MAX_PLAYER_HEIGHT = 420;
@@ -36,11 +36,7 @@ export const VideoPreview = ({ renditions, posterUrl }: Props) => {
 
 	if (!rendition) {
 		return (
-			<Card padding={4} radius={2} tone="caution">
-				<Text muted size={1}>
-					This video has no renditions to play.
-				</Text>
-			</Card>
+			<Notice tone="caution">This video has no renditions to play.</Notice>
 		);
 	}
 
