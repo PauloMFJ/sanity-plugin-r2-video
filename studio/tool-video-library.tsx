@@ -15,6 +15,7 @@ import {
 	TextInput,
 } from "@sanity/ui";
 import { useCallback, useEffect, useState } from "react";
+import styled from "styled-components";
 import { useR2VideoClient } from "./config-context";
 import { DialogDelete } from "./dialog-delete";
 import { DialogDetails } from "./dialog-details";
@@ -107,6 +108,24 @@ const matches = (asset: LibraryAsset, search: string) => {
 		folderName.toLowerCase().includes(term)
 	);
 };
+
+/**
+ * Its checkbox stays hidden until the card is hovered, focused, or picked. In
+ * CSS rather than hover state, which would re-render the grid on every move.
+ */
+const SelectableCard = styled(Box)`
+	position: relative;
+
+	& [data-checkbox] {
+		opacity: 0;
+	}
+
+	&:hover [data-checkbox],
+	& [data-checkbox]:focus-within,
+	& [data-checkbox][data-selected="true"] {
+		opacity: 1;
+	}
+`;
 
 export const ToolVideoLibrary = () => {
 	const { config, client } = useR2VideoClient();
@@ -320,10 +339,12 @@ export const ToolVideoLibrary = () => {
 
 						<Grid gridTemplateColumns={[1, 2, 3, 4]} gap={3}>
 							{visible.map((asset) => (
-								<Box key={asset._id} style={{ position: "relative" }}>
+								<SelectableCard key={asset._id}>
 									{/* Beside the card rather than inside it - a checkbox
 									    within a button is neither valid nor clickable */}
 									<Box
+										data-checkbox
+										data-selected={selectedIds.includes(asset._id)}
 										style={{
 											position: "absolute",
 											top: 14,
@@ -348,7 +369,16 @@ export const ToolVideoLibrary = () => {
 											textAlign: "left",
 											width: "100%",
 										}}
-										onClick={() => setDetailing(asset)}
+										onClick={(event) => {
+											// Shift picks a card out without opening it, so a
+											// selection can be built without aiming at checkboxes
+											if (event.shiftKey) {
+												toggleSelected(asset._id);
+												return;
+											}
+
+											setDetailing(asset);
+										}}
 									>
 										<Stack gap={3}>
 											<Box
@@ -375,7 +405,7 @@ export const ToolVideoLibrary = () => {
 											</Stack>
 										</Stack>
 									</Card>
-								</Box>
+								</SelectableCard>
 							))}
 						</Grid>
 					</Stack>
