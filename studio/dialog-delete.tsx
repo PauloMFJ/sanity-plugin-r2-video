@@ -6,7 +6,7 @@ import {
 	findReferencingDocuments,
 	type ReferencingDocument,
 } from "./delete-video";
-import { formatSize, toMessage } from "./format";
+import { formatSize, toMessage, totalSize } from "./format";
 import type { R2VideoAsset } from "./types";
 import { DialogActions, Loading, Notice } from "./ui";
 
@@ -49,10 +49,6 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 		}
 	};
 
-	const totalBytes = asset.renditions.reduce((total, rendition) => {
-		return total + rendition.size;
-	}, 0);
-
 	const isBlocked = blockers !== null && blockers.length > 0;
 
 	return (
@@ -77,7 +73,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 				<Stack gap={4}>
 					<Text size={1}>
 						{asset.filename} - {asset.renditions.length} renditions,{" "}
-						{formatSize(totalBytes)}, plus its poster.
+						{formatSize(totalSize(asset.renditions))}, plus its poster.
 					</Text>
 
 					{blockers === null && !error && (

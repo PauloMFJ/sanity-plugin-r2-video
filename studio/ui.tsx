@@ -38,6 +38,34 @@ export const Notice = ({ tone, title, icon, children }: NoticeProps) => {
 	);
 };
 
+type FieldProps = {
+	label: string;
+
+	/** Binds the label to its control. */
+	id?: string;
+
+	/** Hint under the control. */
+	description?: string;
+	children: ReactNode;
+};
+
+/** A label above its control, so inputs of different heights line up. */
+export const Field = ({ label, id, description, children }: FieldProps) => {
+	return (
+		<Stack gap={3}>
+			<Text as={id ? "label" : undefined} htmlFor={id} size={1} weight="medium">
+				{label}
+			</Text>
+			{children}
+			{description && (
+				<Text muted size={0}>
+					{description}
+				</Text>
+			)}
+		</Stack>
+	);
+};
+
 type ActionProps = {
 	text: string;
 	disabled?: boolean;

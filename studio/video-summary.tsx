@@ -1,5 +1,5 @@
 import { Box, Card, Flex, Grid, Stack, Text } from "@sanity/ui";
-import { formatDuration, formatSize } from "./format";
+import { formatDuration, formatSize, totalSize } from "./format";
 import type { R2VideoRendition } from "./types";
 
 type FactProps = {
@@ -36,10 +36,6 @@ export const VideoSummary = ({
 	hasAudio,
 	uploadedAt,
 }: Props) => {
-	const totalBytes = renditions.reduce((total, rendition) => {
-		return total + rendition.size;
-	}, 0);
-
 	// Stored in encode order, which happens to be largest first - sorted here so
 	// the list is deliberately ordered rather than incidentally
 	const ordered = [...renditions].sort((a, b) => b.height - a.height);
@@ -55,7 +51,7 @@ export const VideoSummary = ({
 					/>
 					<Fact label="Duration" value={formatDuration(duration)} />
 					<Fact label="Audio" value={hasAudio ? "Kept" : "Stripped"} />
-					<Fact label="Total" value={formatSize(totalBytes)} />
+					<Fact label="Total" value={formatSize(totalSize(renditions))} />
 				</Grid>
 			</Card>
 

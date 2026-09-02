@@ -7,7 +7,6 @@ import {
 	Flex,
 	Select,
 	Stack,
-	Text,
 	TextInput,
 } from "@sanity/ui";
 import { useState } from "react";
@@ -15,26 +14,9 @@ import { useR2VideoClient } from "./config-context";
 import { useFolders } from "./folders";
 import { toMessage } from "./format";
 import type { LibraryAsset } from "./tool-video-library";
-import { DialogActions, Notice } from "./ui";
+import { DialogActions, Field, Notice } from "./ui";
 import { VideoPreview } from "./video-preview";
 import { VideoSummary } from "./video-summary";
-
-type FieldProps = {
-	label: string;
-	children: React.ReactNode;
-};
-
-/** A label above its control, so inputs of different heights still line up. */
-const Field = ({ label, children }: FieldProps) => {
-	return (
-		<Stack gap={3}>
-			<Text muted size={1} weight="medium">
-				{label}
-			</Text>
-			{children}
-		</Stack>
-	);
-};
 
 type Props = {
 	asset: LibraryAsset;

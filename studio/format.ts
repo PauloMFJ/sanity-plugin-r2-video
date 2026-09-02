@@ -18,6 +18,11 @@ export const formatDuration = (seconds: number) => {
 	return `${seconds.toFixed(1)}s`;
 };
 
+/** What a set of renditions adds up to, in bytes. */
+export const totalSize = (renditions: { size: number }[]) => {
+	return renditions.reduce((total, rendition) => total + rendition.size, 0);
+};
+
 /** A count with its noun, pluralised the boring way. */
 export const pluralize = (count: number, noun: string) => {
 	return `${count} ${noun}${count === 1 ? "" : "s"}`;

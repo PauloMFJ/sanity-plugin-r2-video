@@ -12,31 +12,17 @@ import {
 } from "@sanity/ui";
 import { type ReactNode, useId, useState } from "react";
 import type { FolderPath } from "./folders";
+import { Field } from "./ui";
 
-type FieldProps = {
+type ToggleRowProps = {
 	id: string;
 	label: string;
 	description: string;
 	children: ReactNode;
 };
 
-/** A label above its control, matching how the details dialog lays fields out. */
-const Field = ({ id, label, description, children }: FieldProps) => {
-	return (
-		<Stack gap={3}>
-			<Text as="label" htmlFor={id} size={1} weight="medium">
-				{label}
-			</Text>
-			{children}
-			<Text muted size={0}>
-				{description}
-			</Text>
-		</Stack>
-	);
-};
-
 /** A toggle keeps its label beside it - a switch under a label reads as adrift. */
-const ToggleRow = ({ id, label, description, children }: FieldProps) => {
+const ToggleRow = ({ id, label, description, children }: ToggleRowProps) => {
 	return (
 		<Flex align="center" gap={3}>
 			<Box flex={1}>
