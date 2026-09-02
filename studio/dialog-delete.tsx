@@ -6,12 +6,18 @@ import {
 	findReferencingDocuments,
 	type ReferencingDocument,
 } from "./delete-video";
-import { formatSize, toMessage, totalSize } from "./format";
+import { formatSize, pluralize, toMessage, totalSize } from "./format";
 import type { R2VideoAsset } from "./types";
 import { DialogActions, Loading, Notice } from "./ui";
 
-type Props = {
+/** One video that can't go, and what still points at it. */
+type Blocked = {
 	asset: R2VideoAsset;
+	documents: ReferencingDocument[];
+};
+
+type Props = {
+	assets: R2VideoAsset[];
 	onDeleted: () => void;
 	onClose: () => void;
 };
@@ -21,27 +27,39 @@ type Props = {
  * exactly what goes: every rendition, the bytes they add up to, and any
  * document that would break - which blocks the delete outright.
  */
-export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
+export const DialogDelete = ({ assets, onDeleted, onClose }: Props) => {
 	const { config, client } = useR2VideoClient();
 
-	const [blockers, setBlockers] = useState<ReferencingDocument[] | null>(null);
+	const [blocked, setBlocked] = useState<Blocked[] | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		findReferencingDocuments(client, asset._id)
-			.then(setBlockers)
+		Promise.all(
+			assets.map(async (asset) => ({
+				asset,
+				documents: await findReferencingDocuments(client, asset._id),
+			})),
+		)
+			.then((checked) => {
+				setBlocked(checked.filter((entry) => entry.documents.length > 0));
+			})
 			.catch(() => {
-				setError("Could not check which documents use this video.");
+				setError("Could not check which documents use these videos.");
 			});
-	}, [client, asset._id]);
+	}, [client, assets]);
 
 	const confirmed = async () => {
 		setIsDeleting(true);
 		setError(null);
 
 		try {
-			await deleteVideoAsset(client, config, asset);
+			// One at a time: each delete is four ordered steps across Sanity and
+			// R2, and a failure part-way should stop the rest
+			for (const asset of assets) {
+				await deleteVideoAsset(client, config, asset);
+			}
+
 			onDeleted();
 		} catch (caught) {
 			setError(toMessage(caught));
@@ -49,11 +67,13 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 		}
 	};
 
-	const isBlocked = blockers !== null && blockers.length > 0;
+	const isBlocked = blocked !== null && blocked.length > 0;
+	const renditions = assets.flatMap((asset) => asset.renditions);
+	const isOne = assets.length === 1;
 
 	return (
 		<Dialog
-			header="Delete video"
+			header={isOne ? "Delete video" : `Delete ${assets.length} videos`}
 			id="r2-video-delete"
 			width={1}
 			onClose={isDeleting ? undefined : onClose}
@@ -63,7 +83,7 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 					confirm={{
 						text: isDeleting ? "Deleting…" : "Delete",
 						tone: "critical",
-						disabled: isDeleting || isBlocked || blockers === null,
+						disabled: isDeleting || isBlocked || blocked === null,
 						onClick: confirmed,
 					}}
 				/>
@@ -72,32 +92,38 @@ export const DialogDelete = ({ asset, onDeleted, onClose }: Props) => {
 			<Card padding={4}>
 				<Stack gap={4}>
 					<Text size={1}>
-						{asset.filename} - {asset.renditions.length} renditions,{" "}
-						{formatSize(totalSize(asset.renditions))}, plus its poster.
+						{isOne ? assets[0].filename : pluralize(assets.length, "video")} -{" "}
+						{pluralize(renditions.length, "rendition")},{" "}
+						{formatSize(totalSize(renditions))}, plus{" "}
+						{isOne ? "its poster" : "their posters"}.
 					</Text>
 
-					{blockers === null && !error && (
-						<Loading>Checking where it's used…</Loading>
+					{blocked === null && !error && (
+						<Loading>Checking where they're used…</Loading>
 					)}
 
 					{isBlocked && (
 						<Notice title="Still in use" tone="caution">
 							<Stack gap={3}>
 								<Text muted size={1}>
-									Remove it from these documents first:
+									Remove {isOne ? "it" : "these"} from these documents first:
 								</Text>
-								{blockers.map((blocker) => (
-									<Text key={blocker._id} muted size={1}>
-										{blocker.title || blocker._id} ({blocker._type})
+
+								{blocked.map((entry) => (
+									<Text key={entry.asset._id} muted size={1}>
+										{!isOne && `${entry.asset.filename}: `}
+										{entry.documents
+											.map((document) => document.title || document._id)
+											.join(", ")}
 									</Text>
 								))}
 							</Stack>
 						</Notice>
 					)}
 
-					{blockers !== null && blockers.length === 0 && (
+					{blocked !== null && blocked.length === 0 && (
 						<Text muted size={1}>
-							Nothing references it. This can't be undone.
+							Nothing references {isOne ? "it" : "them"}. This can't be undone.
 						</Text>
 					)}
 

@@ -1,12 +1,15 @@
 import { SearchIcon } from "@sanity/icons/Search";
 import { SyncIcon } from "@sanity/icons/Sync";
+import { TrashIcon } from "@sanity/icons/Trash";
 import { UploadIcon } from "@sanity/icons/Upload";
 import {
 	Box,
 	Button,
 	Card,
+	Checkbox,
 	Flex,
 	Grid,
+	Select,
 	Stack,
 	Text,
 	TextInput,
@@ -19,7 +22,13 @@ import { DialogOrphans } from "./dialog-orphans";
 import { DialogUpload } from "./dialog-upload";
 import { DropToUpload, useFileDrop } from "./file-drop";
 import { FolderSidebar } from "./folder-sidebar";
-import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
+import {
+	fetchFolders,
+	type MediaFolder,
+	resolveFolderPaths,
+	useFolders,
+} from "./folders";
+import { pluralize } from "./format";
 import type { R2VideoAsset } from "./types";
 import { Loading } from "./ui";
 
@@ -43,6 +52,7 @@ const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	"hasAudio": coalesce(hasAudio, false),
 	"renditions": coalesce(renditions, []),
 	uploadedAt,
+	"isUsed": count(*[references(^._id)]) > 0,
 	"posterUrl": poster.asset->url,
 	"folderName": folder->name
 }`;
@@ -79,6 +89,7 @@ const toTitle = (asset: LibraryAsset, isFiltered: boolean) => {
 };
 
 export type LibraryAsset = R2VideoAsset & {
+	isUsed: boolean;
 	posterUrl?: string;
 	folderName?: string;
 };
@@ -100,6 +111,10 @@ const matches = (asset: LibraryAsset, search: string) => {
 export const ToolVideoLibrary = () => {
 	const { config, client } = useR2VideoClient();
 
+	// Every folder, not only those already holding video - a selection is often
+	// moved somewhere new
+	const { paths: allPaths } = useFolders();
+
 	const [assets, setAssets] = useState<LibraryAsset[] | null>(null);
 	const [folders, setFolders] = useState<MediaFolder[]>([]);
 	const [search, setSearch] = useState("");
@@ -108,7 +123,10 @@ export const ToolVideoLibrary = () => {
 	const [isOrphansOpen, setIsOrphansOpen] = useState(false);
 	const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 	const [detailing, setDetailing] = useState<LibraryAsset | null>(null);
-	const [deleting, setDeleting] = useState<LibraryAsset | null>(null);
+	const [deleting, setDeleting] = useState<LibraryAsset[] | null>(null);
+	const [isUnusedOnly, setIsUnusedOnly] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+	const [isMoving, setIsMoving] = useState(false);
 
 	const load = useCallback(() => {
 		client.fetch<LibraryAsset[]>(QUERY_ASSETS).then(setAssets);
@@ -155,8 +173,41 @@ export const ToolVideoLibrary = () => {
 	const visible = (assets ?? []).filter((asset) => {
 		const inFolder =
 			!folderId || (asset.folder && asset.folder._ref === folderId);
-		return matches(asset, search) && inFolder;
+		const isShown = !isUnusedOnly || !asset.isUsed;
+
+		return matches(asset, search) && inFolder && isShown;
 	});
+
+	const selected = visible.filter((asset) => selectedIds.includes(asset._id));
+
+	const toggleSelected = (id: string) => {
+		setSelectedIds((current) => {
+			return current.includes(id)
+				? current.filter((entry) => entry !== id)
+				: [...current, id];
+		});
+	};
+
+	/** Files the selection into a folder, or out of one when given no id. */
+	const moveSelected = async (targetId: string) => {
+		setIsMoving(true);
+
+		let transaction = client.transaction();
+
+		for (const asset of selected) {
+			transaction = targetId
+				? transaction.patch(asset._id, (patch) =>
+						patch.set({ folder: { _type: "reference", _ref: targetId } }),
+					)
+				: transaction.patch(asset._id, (patch) => patch.unset(["folder"]));
+		}
+
+		await transaction.commit();
+
+		setIsMoving(false);
+		setSelectedIds([]);
+		load();
+	};
 
 	return (
 		<Flex
@@ -184,6 +235,13 @@ export const ToolVideoLibrary = () => {
 								/>
 							</Box>
 							<Button
+								mode={isUnusedOnly ? "default" : "ghost"}
+								text="Unused"
+								tone={isUnusedOnly ? "primary" : "default"}
+								onClick={() => setIsUnusedOnly(!isUnusedOnly)}
+							/>
+
+							<Button
 								icon={SyncIcon}
 								mode="ghost"
 								text="Sync"
@@ -197,6 +255,54 @@ export const ToolVideoLibrary = () => {
 								onClick={() => setIsUploadOpen(true)}
 							/>
 						</Flex>
+
+						{selected.length > 0 && (
+							<Card border padding={2} radius={2} tone="primary">
+								<Flex align="center" gap={2}>
+									<Box paddingX={2}>
+										<Text size={1} weight="medium">
+											{pluralize(selected.length, "video")} selected
+										</Text>
+									</Box>
+
+									<Box flex={1}>
+										<Select
+											aria-label="Move to folder"
+											disabled={isMoving}
+											value=""
+											onChange={(event) =>
+												moveSelected(event.currentTarget.value)
+											}
+										>
+											<option value="" disabled>
+												Move to…
+											</option>
+											<option value="">No folder</option>
+											{allPaths.map((entry) => (
+												<option key={entry.id} value={entry.id}>
+													{entry.path}
+												</option>
+											))}
+										</Select>
+									</Box>
+
+									<Button
+										disabled={isMoving}
+										mode="ghost"
+										text="Clear"
+										onClick={() => setSelectedIds([])}
+									/>
+									<Button
+										disabled={isMoving}
+										icon={TrashIcon}
+										mode="ghost"
+										text="Delete"
+										tone="critical"
+										onClick={() => setDeleting(selected)}
+									/>
+								</Flex>
+							</Card>
+						)}
 
 						{assets === null && (
 							<Box padding={4}>
@@ -214,39 +320,62 @@ export const ToolVideoLibrary = () => {
 
 						<Grid gridTemplateColumns={[1, 2, 3, 4]} gap={3}>
 							{visible.map((asset) => (
-								<Card
-									key={asset._id}
-									as="button"
-									border
-									padding={2}
-									radius={2}
-									style={{ cursor: "pointer", textAlign: "left" }}
-									onClick={() => setDetailing(asset)}
-								>
-									<Stack gap={3}>
-										<Box
-											style={{
-												aspectRatio: "16 / 9",
-												backgroundImage: asset.posterUrl
-													? `url(${asset.posterUrl}?w=480&fit=crop&auto=format)`
-													: undefined,
-												backgroundPosition: "center",
-												backgroundSize: "cover",
-												borderRadius: 2,
-											}}
+								<Box key={asset._id} style={{ position: "relative" }}>
+									{/* Beside the card rather than inside it - a checkbox
+									    within a button is neither valid nor clickable */}
+									<Box
+										style={{
+											position: "absolute",
+											top: 14,
+											left: 14,
+											zIndex: 1,
+										}}
+									>
+										<Checkbox
+											aria-label={`Select ${asset.filename}`}
+											checked={selectedIds.includes(asset._id)}
+											onChange={() => toggleSelected(asset._id)}
 										/>
+									</Box>
 
-										<Stack gap={2}>
-											<Text size={1} textOverflow="ellipsis" weight="medium">
-												{toTitle(asset, Boolean(folderId))}
-											</Text>
-											<Text muted size={1}>
-												{asset.renditions.length} sizes
-												{asset.hasAudio ? " · audio" : ""}
-											</Text>
+									<Card
+										as="button"
+										border
+										padding={2}
+										radius={2}
+										style={{
+											cursor: "pointer",
+											textAlign: "left",
+											width: "100%",
+										}}
+										onClick={() => setDetailing(asset)}
+									>
+										<Stack gap={3}>
+											<Box
+												style={{
+													aspectRatio: "16 / 9",
+													backgroundImage: asset.posterUrl
+														? `url(${asset.posterUrl}?w=480&fit=crop&auto=format)`
+														: undefined,
+													backgroundPosition: "center",
+													backgroundSize: "cover",
+													borderRadius: 2,
+												}}
+											/>
+
+											<Stack gap={2}>
+												<Text size={1} textOverflow="ellipsis" weight="medium">
+													{toTitle(asset, Boolean(folderId))}
+												</Text>
+												<Text muted size={1}>
+													{asset.renditions.length} sizes
+													{asset.hasAudio ? " · audio" : ""}
+													{asset.isUsed ? "" : " · unused"}
+												</Text>
+											</Stack>
 										</Stack>
-									</Stack>
-								</Card>
+									</Card>
+								</Box>
 							))}
 						</Grid>
 					</Stack>
@@ -278,7 +407,7 @@ export const ToolVideoLibrary = () => {
 					onDelete={() => {
 						// Hand off rather than stacking dialogs - the delete needs the
 						// whole surface for its usage list
-						setDeleting(detailing);
+						setDeleting([detailing]);
 						setDetailing(null);
 					}}
 					onClose={() => setDetailing(null)}
@@ -287,7 +416,7 @@ export const ToolVideoLibrary = () => {
 
 			{deleting && (
 				<DialogDelete
-					asset={deleting}
+					assets={deleting}
 					onClose={() => setDeleting(null)}
 					onDeleted={() => {
 						setDeleting(null);

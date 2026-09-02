@@ -42,6 +42,7 @@ export const DialogDetails = ({
 	);
 	const [filename, setFilename] = useState(asset.filename);
 	const [isSaving, setIsSaving] = useState(false);
+	const [isFlagged, setIsFlagged] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	// A document the upload pipeline never finished writing. There is nothing to
@@ -59,6 +60,21 @@ export const DialogDetails = ({
 	const reset = () => {
 		setFilename(asset.filename);
 		setFolderId(savedFolderId);
+		setIsFlagged(false);
+	};
+
+	/** Closes, unless there are edits that would go with it. */
+	const attemptClose = () => {
+		if (isSaving) {
+			return;
+		}
+
+		if (isDirty) {
+			setIsFlagged(true);
+			return;
+		}
+
+		onClose();
 	};
 
 	/**
@@ -101,6 +117,7 @@ export const DialogDetails = ({
 			}
 
 			await mutation.commit();
+			setIsFlagged(false);
 			onChanged();
 		} catch (caught) {
 			reset();
@@ -115,7 +132,8 @@ export const DialogDetails = ({
 			header={asset.filename || "Untitled video"}
 			id="r2-video-details"
 			width={1}
-			onClose={isSaving ? undefined : onClose}
+			onClickOutside={attemptClose}
+			onClose={isSaving ? undefined : attemptClose}
 			footer={
 				<DialogActions
 					aside={
@@ -194,6 +212,12 @@ export const DialogDetails = ({
 								</Field>
 							</Box>
 						</Flex>
+
+						{isFlagged && (
+							<Notice tone="caution">
+								Unsaved changes. Save them, or discard to close.
+							</Notice>
+						)}
 
 						{error && <Notice tone="critical">{error}</Notice>}
 
