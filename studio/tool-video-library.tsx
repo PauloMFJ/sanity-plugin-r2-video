@@ -1,3 +1,5 @@
+import { CheckmarkIcon } from "@sanity/icons/Checkmark";
+import { FilterIcon } from "@sanity/icons/Filter";
 import { SearchIcon } from "@sanity/icons/Search";
 import { SyncIcon } from "@sanity/icons/Sync";
 import { TrashIcon } from "@sanity/icons/Trash";
@@ -14,7 +16,8 @@ import {
 	Text,
 	TextInput,
 } from "@sanity/ui";
-import { useCallback, useEffect, useState } from "react";
+import { Menu, MenuButton, MenuDivider, MenuItem } from "@sanity/ui/menu";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useR2VideoClient } from "./config-context";
 import { DialogDelete } from "./dialog-delete";
@@ -110,6 +113,49 @@ const matches = (asset: LibraryAsset, search: string) => {
 };
 
 /**
+ * What the library can be narrowed to. Filters in the same group widen each
+ * other; filters from different groups narrow.
+ */
+const FILTERS = [
+	{
+		key: "foldered",
+		group: "folder",
+		label: "In a folder",
+		test: (asset: LibraryAsset) => Boolean(asset.folder),
+	},
+	{
+		key: "unfoldered",
+		group: "folder",
+		label: "No folder",
+		test: (asset: LibraryAsset) => !asset.folder,
+	},
+	{
+		key: "used",
+		group: "usage",
+		label: "In use",
+		test: (asset: LibraryAsset) => asset.isUsed,
+	},
+	{
+		key: "unused",
+		group: "usage",
+		label: "Unused",
+		test: (asset: LibraryAsset) => !asset.isUsed,
+	},
+];
+
+const FILTER_GROUPS = [...new Set(FILTERS.map((filter) => filter.group))];
+
+const passesFilters = (asset: LibraryAsset, keys: string[]) => {
+	const active = FILTERS.filter((filter) => keys.includes(filter.key));
+
+	return FILTER_GROUPS.every((group) => {
+		const inGroup = active.filter((filter) => filter.group === group);
+
+		return inGroup.length === 0 || inGroup.some((filter) => filter.test(asset));
+	});
+};
+
+/**
  * Its checkbox stays hidden until the card is hovered, focused, or picked. In
  * CSS rather than hover state, which would re-render the grid on every move.
  */
@@ -143,7 +189,7 @@ export const ToolVideoLibrary = () => {
 	const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 	const [detailing, setDetailing] = useState<LibraryAsset | null>(null);
 	const [deleting, setDeleting] = useState<LibraryAsset[] | null>(null);
-	const [isUnusedOnly, setIsUnusedOnly] = useState(false);
+	const [filterKeys, setFilterKeys] = useState<string[]>([]);
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [isMoving, setIsMoving] = useState(false);
 
@@ -192,12 +238,20 @@ export const ToolVideoLibrary = () => {
 	const visible = (assets ?? []).filter((asset) => {
 		const inFolder =
 			!folderId || (asset.folder && asset.folder._ref === folderId);
-		const isShown = !isUnusedOnly || !asset.isUsed;
-
-		return matches(asset, search) && inFolder && isShown;
+		return (
+			matches(asset, search) && inFolder && passesFilters(asset, filterKeys)
+		);
 	});
 
 	const selected = visible.filter((asset) => selectedIds.includes(asset._id));
+
+	const toggleFilter = (key: string) => {
+		setFilterKeys((current) => {
+			return current.includes(key)
+				? current.filter((entry) => entry !== key)
+				: [...current, key];
+		});
+	};
 
 	const toggleSelected = (id: string) => {
 		setSelectedIds((current) => {
@@ -253,11 +307,44 @@ export const ToolVideoLibrary = () => {
 									onChange={(event) => setSearch(event.currentTarget.value)}
 								/>
 							</Box>
-							<Button
-								mode={isUnusedOnly ? "default" : "ghost"}
-								text="Unused"
-								tone={isUnusedOnly ? "primary" : "default"}
-								onClick={() => setIsUnusedOnly(!isUnusedOnly)}
+							<MenuButton
+								button={
+									<Button
+										icon={FilterIcon}
+										mode={filterKeys.length > 0 ? "default" : "ghost"}
+										text={
+											filterKeys.length > 0
+												? `Filters (${filterKeys.length})`
+												: "Filters"
+										}
+										tone={filterKeys.length > 0 ? "primary" : "default"}
+									/>
+								}
+								id="r2-video-filters"
+								menu={
+									<Menu>
+										{FILTERS.map((filter, index) => (
+											<Fragment key={filter.key}>
+												{index > 0 &&
+													FILTERS[index - 1].group !== filter.group && (
+														<MenuDivider />
+													)}
+
+												<MenuItem
+													iconRight={
+														filterKeys.includes(filter.key)
+															? CheckmarkIcon
+															: undefined
+													}
+													pressed={filterKeys.includes(filter.key)}
+													text={filter.label}
+													onClick={() => toggleFilter(filter.key)}
+												/>
+											</Fragment>
+										))}
+									</Menu>
+								}
+								popover={{ placement: "bottom-start" }}
 							/>
 
 							<Button
