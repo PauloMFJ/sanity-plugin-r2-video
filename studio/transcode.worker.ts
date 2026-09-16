@@ -7,6 +7,7 @@ import {
 	BufferTarget,
 	CanvasSink,
 	Conversion,
+	EncodedPacketSink,
 	Input,
 	type InputVideoTrack,
 	Mp4OutputFormat,
@@ -35,6 +36,50 @@ const resolveHeights = (sourceHeight: number, heights: number[]) => {
  */
 const resolveWidth = (height: number, aspectRatio: number): number => {
 	return Math.round((height * aspectRatio) / 2) * 2;
+};
+
+/**
+ * The rate frames arrive at while something moves: the most common gap between
+ * frames. Not the average - a screen recording holds frames while nothing
+ * changes, dragging its average far below its real cadence. Reads timestamps
+ * only, so nothing is decoded.
+ *
+ * Whole rates only, so 29.97 becomes 30 and drifts a frame every ~33s. Fine
+ * for short clips.
+ */
+const resolveFrameRate = async (track: InputVideoTrack) => {
+	const timestamps: number[] = [];
+	const packets = new EncodedPacketSink(track).packets(undefined, undefined, {
+		metadataOnly: true,
+	});
+
+	for await (const packet of packets) {
+		timestamps.push(packet.timestamp);
+	}
+
+	// Decode order, which B-frames put out of display order
+	timestamps.sort((a, b) => a - b);
+
+	const counts = new Map<number, number>();
+
+	for (let index = 1; index < timestamps.length; index += 1) {
+		const gap = timestamps[index] - timestamps[index - 1];
+		const rate = gap > 0 ? Math.round(1 / gap) : 0;
+
+		if (rate >= 1) {
+			counts.set(rate, (counts.get(rate) ?? 0) + 1);
+		}
+	}
+
+	let peak: number | undefined;
+
+	for (const [rate, count] of counts) {
+		if (peak === undefined || count > (counts.get(peak) ?? 0)) {
+			peak = rate;
+		}
+	}
+
+	return peak;
 };
 
 /** Encoding settings, resolved by the caller so this file holds no defaults. */
@@ -74,6 +119,7 @@ export type TranscodeMessage =
 	| {
 			type: "result";
 			duration: number;
+			frameRate?: number;
 			hasAudio: boolean;
 			poster: Blob;
 			posterWidth: number;
@@ -122,6 +168,7 @@ const encodeRendition = async (
 	height: number,
 	hasAudio: boolean,
 	isNative: boolean,
+	frameRate: number | undefined,
 	options: TranscodeOptions,
 	progressed: (progress: number) => void,
 ) => {
@@ -154,6 +201,10 @@ const encodeRendition = async (
 					fit: "cover",
 					codec: options.videoCodec,
 					quality,
+
+					// Constant, repeating held frames - browsers pace playback off
+					// the average rate, and variable timing stutters in them
+					frameRate,
 				},
 		audio: hasAudio
 			? { codec: options.audioCodec, quality }
@@ -193,6 +244,7 @@ const transcode = async ({
 	const audioTrack = await input.getPrimaryAudioTrack();
 	const hasAudio = keepAudio && audioTrack !== null;
 	const sourceCodec = await track.getCodec();
+	const frameRate = await resolveFrameRate(track);
 
 	const { poster, posterWidth, posterHeight } = await extractPoster(track);
 
@@ -223,6 +275,7 @@ const transcode = async ({
 			height,
 			hasAudio,
 			isNative,
+			frameRate,
 			options,
 			(progress) => {
 				post({
@@ -242,6 +295,7 @@ const transcode = async ({
 
 	return {
 		duration,
+		frameRate,
 		hasAudio,
 		poster,
 		posterWidth,
