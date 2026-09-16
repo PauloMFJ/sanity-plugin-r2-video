@@ -8,6 +8,7 @@ import type {
 export type { TranscodedRendition };
 export type TranscodeResult = {
 	duration: number;
+	frameRate?: number;
 	hasAudio: boolean;
 	poster: Blob;
 	posterWidth: number;

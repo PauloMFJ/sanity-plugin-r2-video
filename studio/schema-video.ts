@@ -48,6 +48,12 @@ export const createVideoAssetSchema = (config: ResolvedR2VideoConfig) => {
 				readOnly: true,
 			}),
 			defineField({
+				title: "Frame rate",
+				name: "frameRate",
+				type: "number",
+				readOnly: true,
+			}),
+			defineField({
 				title: "Has audio",
 				name: "hasAudio",
 				type: "boolean",

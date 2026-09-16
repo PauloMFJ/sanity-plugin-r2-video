@@ -53,6 +53,7 @@ const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	folder,
 	poster,
 	"duration": coalesce(duration, 0),
+	frameRate,
 	"hasAudio": coalesce(hasAudio, false),
 	"renditions": coalesce(renditions, []),
 	uploadedAt,

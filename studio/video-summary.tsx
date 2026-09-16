@@ -22,6 +22,7 @@ const Fact = ({ label, value }: FactProps) => {
 type Props = {
 	renditions: R2VideoRendition[];
 	duration: number;
+	frameRate?: number;
 	hasAudio: boolean;
 	uploadedAt?: string;
 };
@@ -33,6 +34,7 @@ type Props = {
 export const VideoSummary = ({
 	renditions,
 	duration,
+	frameRate,
 	hasAudio,
 	uploadedAt,
 }: Props) => {
@@ -44,12 +46,16 @@ export const VideoSummary = ({
 	return (
 		<Stack gap={5}>
 			<Card border padding={4} radius={2} tone="transparent">
-				<Grid gap={4} gridTemplateColumns={[2, 4]}>
+				<Grid gap={4} gridTemplateColumns={[2, 5]}>
 					<Fact
 						label="Source"
 						value={largest ? `${largest.width} × ${largest.height}` : "Unknown"}
 					/>
 					<Fact label="Duration" value={formatDuration(duration)} />
+					<Fact
+						label="Frame rate"
+						value={frameRate ? `${frameRate} fps` : "Unknown"}
+					/>
 					<Fact label="Audio" value={hasAudio ? "Kept" : "Stripped"} />
 					<Fact label="Total" value={formatSize(totalSize(renditions))} />
 				</Grid>

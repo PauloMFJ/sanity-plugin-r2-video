@@ -223,6 +223,7 @@ export const DialogDetails = ({
 
 						<VideoSummary
 							duration={asset.duration}
+							frameRate={asset.frameRate}
 							hasAudio={asset.hasAudio}
 							renditions={asset.renditions}
 							uploadedAt={asset.uploadedAt}

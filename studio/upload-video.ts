@@ -190,6 +190,7 @@ export const uploadVideo = async ({
 				asset: { _type: "reference", _ref: poster._id },
 			},
 			duration: encoded.duration,
+			frameRate: encoded.frameRate,
 			hasAudio: encoded.hasAudio,
 			renditions,
 			uploadedAt: new Date().toISOString(),

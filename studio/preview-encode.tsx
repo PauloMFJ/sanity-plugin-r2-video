@@ -11,6 +11,7 @@ export type EncodePreview = {
 	height: number;
 	bytes: number;
 	duration: number;
+	frameRate?: number;
 };
 
 type Props = {
@@ -77,6 +78,7 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 				height: rendition.height,
 				bytes: blob.size,
 				duration: result.duration,
+				frameRate: result.frameRate,
 			});
 		} catch (caught) {
 			setError(toMessage(caught));
@@ -131,6 +133,7 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 						<Text muted size={1}>
 							{preview.width} × {preview.height} · {formatSize(preview.bytes)} ·{" "}
 							{formatBitrate(preview.bytes, preview.duration)}
+							{preview.frameRate && ` · ${preview.frameRate} fps`}
 						</Text>
 						<Text muted size={0}>
 							This is the largest rendition. Smaller tiers are a fraction of it.

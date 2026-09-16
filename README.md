@@ -148,6 +148,7 @@ type R2VideoAsset = {
   folder?: { _type: "reference"; _ref: string };
   poster: { _type: "image"; asset: { _type: "reference"; _ref: string } };
   duration: number;                        // seconds
+  frameRate?: number;                      // constant fps of every rendition
   hasAudio: boolean;
   uploadedAt: string;                      // ISO 8601
   renditions: {

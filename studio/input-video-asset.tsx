@@ -96,6 +96,7 @@ export const InputVideoAsset = (props: ObjectInputProps) => {
 			{renditions.length > 0 && (
 				<VideoSummary
 					duration={read(props.value, "duration", isNumber) ?? 0}
+					frameRate={read(props.value, "frameRate", isNumber)}
 					hasAudio={read(props.value, "hasAudio", isBoolean) ?? false}
 					renditions={renditions}
 					uploadedAt={read(props.value, "uploadedAt", isString)}
