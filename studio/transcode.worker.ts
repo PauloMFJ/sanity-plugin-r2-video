@@ -88,7 +88,6 @@ export type TranscodeOptions = {
 	videoCodec: VideoCodec;
 	audioCodec: AudioCodec;
 	quality: number;
-	preferBitrate: boolean;
 	nativeTopTier: boolean;
 };
 
@@ -132,10 +131,7 @@ const post = (message: TranscodeMessage, transfer: Transferable[] = []) => {
 	self.postMessage(message, transfer);
 };
 
-/**
- * The first frame, as a JPEG. Sanity re-encodes on delivery, so this only has
- * to survive one pass - the size saving over PNG is worth far more here.
- */
+/** The first frame, as a full-quality JPEG. Optimised on delivery. */
 const extractPoster = async (track: InputVideoTrack) => {
 	const frame = await new CanvasSink(track).getCanvas(0);
 	if (!frame) {
@@ -148,7 +144,7 @@ const extractPoster = async (track: InputVideoTrack) => {
 	}
 
 	return {
-		poster: await canvas.convertToBlob({ type: "image/jpeg", quality: 0.92 }),
+		poster: await canvas.convertToBlob({ type: "image/jpeg", quality: 1 }),
 		posterWidth: canvas.width,
 		posterHeight: canvas.height,
 	};
@@ -172,12 +168,7 @@ const encodeRendition = async (
 	options: TranscodeOptions,
 	progressed: (progress: number) => void,
 ) => {
-	// Object form rather than the numeric shorthand, so `preferBitrate` can pick
-	// between quantizer-driven (constant quality) and bitrate-driven encoding
-	const quality = new Quality({
-		quality: options.quality,
-		preferBitrate: options.preferBitrate,
-	});
+	const quality = new Quality(options.quality);
 
 	const output = new Output({
 		// Fast Start puts the metadata at the front so the browser can start

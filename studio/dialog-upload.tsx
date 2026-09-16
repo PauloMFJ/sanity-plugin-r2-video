@@ -107,9 +107,6 @@ export const DialogUpload = ({
 	const [targetFolder, setTargetFolder] = useState(folderId);
 	const [keepAudio, setKeepAudio] = useState(false);
 	const [quality, setQuality] = useState(config.encoding.quality);
-	const [preferBitrate, setPreferBitrate] = useState(
-		config.encoding.preferBitrate,
-	);
 	const [items, setItems] = useState<QueueItem[]>(
 		(initialFiles ?? []).map(toItem),
 	);
@@ -128,8 +125,8 @@ export const DialogUpload = ({
 	// are no longer the ones that produced the preview" and clears it. A fresh
 	// object every render would clear the preview the moment it appeared.
 	const encoding = useMemo(() => {
-		return { ...config.encoding, quality, preferBitrate };
-	}, [config.encoding, quality, preferBitrate]);
+		return { ...config.encoding, quality };
+	}, [config.encoding, quality]);
 
 	const pending = items.filter((item) => item.status === "pending");
 	const isBusy = items.some((item) => item.status === "working");
@@ -335,11 +332,9 @@ export const DialogUpload = ({
 						folderPaths={paths}
 						isDisabled={isBusy}
 						keepAudio={keepAudio}
-						preferBitrate={preferBitrate}
 						quality={quality}
 						onFolderChange={setTargetFolder}
 						onKeepAudioChange={setKeepAudio}
-						onPreferBitrateChange={setPreferBitrate}
 						onQualityChange={setQuality}
 					>
 						<PreviewEncode

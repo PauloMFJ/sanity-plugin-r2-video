@@ -45,12 +45,10 @@ type Props = {
 	folderPaths: FolderPath[];
 	keepAudio: boolean;
 	quality: number;
-	preferBitrate: boolean;
 	isDisabled: boolean;
 	onFolderChange: (folderId: string) => void;
 	onKeepAudioChange: (keepAudio: boolean) => void;
 	onQualityChange: (quality: number) => void;
-	onPreferBitrateChange: (preferBitrate: boolean) => void;
 	children: ReactNode;
 };
 
@@ -66,12 +64,10 @@ export const UploadSettings = ({
 	folderPaths,
 	keepAudio,
 	quality,
-	preferBitrate,
 	isDisabled,
 	onFolderChange,
 	onKeepAudioChange,
 	onQualityChange,
-	onPreferBitrateChange,
 	children,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -80,7 +76,6 @@ export const UploadSettings = ({
 	const folderInputId = `${panelId}-folder`;
 	const audioInputId = `${panelId}-keep-audio`;
 	const qualityInputId = `${panelId}-quality`;
-	const bitrateInputId = `${panelId}-prefer-bitrate`;
 
 	return (
 		<Stack gap={4}>
@@ -150,21 +145,6 @@ export const UploadSettings = ({
 							}
 						/>
 					</Field>
-
-					<ToggleRow
-						id={bitrateInputId}
-						label="Predictable file size"
-						description="Targets a bitrate instead of a quality level, so size stops depending on how detailed the footage is."
-					>
-						<Switch
-							checked={preferBitrate}
-							disabled={isDisabled}
-							id={bitrateInputId}
-							onChange={(event) =>
-								onPreferBitrateChange(event.currentTarget.checked)
-							}
-						/>
-					</ToggleRow>
 
 					{children}
 				</Stack>

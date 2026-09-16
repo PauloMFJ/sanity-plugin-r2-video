@@ -48,7 +48,7 @@ export type R2VideoAsset = {
 	poster: R2VideoPoster;
 	duration: number;
 
-	/** Constant rate every rendition plays at. Absent on videos uploaded before 0.1.12. */
+	/** Frame rate the renditions were encoded at. Absent on videos uploaded before 0.2.0. */
 	frameRate?: number;
 	hasAudio: boolean;
 	renditions: R2VideoRendition[];
@@ -108,23 +108,6 @@ export type R2VideoEncodingConfig = {
 	 * detail that was never captured.
 	 */
 	quality?: number;
-
-	/**
-	 * Encode to a target **bitrate** instead of a quantizer.
-	 *
-	 * Flips the trade-off `quality` makes. The quantizer default is constant
-	 * quality with variable size - grainy footage produces far bigger files than
-	 * flat footage. With this on, size becomes predictable and quality varies
-	 * instead: a tier lands at roughly the same weight whatever you feed it.
-	 *
-	 * The target is derived from frame size and `quality`, using 3 Mbps at
-	 * 1920×1080 as the reference and a multiplier from the quality curve - so
-	 * `0.75` is about 6.1 Mbps at 1080p, and `0.5` about 3.2 Mbps.
-	 *
-	 * Worth turning on when knowing what lands in the bucket matters more than
-	 * every clip hitting the same visual bar.
-	 */
-	preferBitrate?: boolean;
 
 	/**
 	 * Copy the top rendition straight from the source instead of re-encoding it,

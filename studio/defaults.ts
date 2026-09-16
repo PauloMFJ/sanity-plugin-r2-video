@@ -27,7 +27,6 @@ const DEFAULTS = {
 		videoCodec: "avc",
 		audioCodec: "aac",
 		quality: 0.75,
-		preferBitrate: false,
 		nativeTopTier: false,
 	},
 } as const satisfies Partial<R2VideoPluginConfig> & WithNested;

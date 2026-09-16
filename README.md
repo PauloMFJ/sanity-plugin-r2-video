@@ -17,7 +17,7 @@ j6w3wy2bd0jq/720.mp4     4.9 MB
 j6w3wy2bd0jq/1080.mp4    9.7 MB
 ```
 
-Your site picks whichever one fits: the 360 behind a thumbnail, the 1080 in a hero. Each document keeps the whole list, with the height, key and size of every file, so choosing one takes a line of code. Upload a 480p clip and you get three files instead of five, as nothing is ever upscaled.
+Your site picks whichever one fits: the 360 behind a thumbnail, the 1080 in a hero. Each document keeps the whole list, with the height, key and size of every file, so choosing one takes a line of code. Upload a 480p clip and you get three files instead of five, as tiers taller than the source are skipped.
 
 Encoding runs on the editor's machine with [mediabunny](https://mediabunny.dev), using WebCodecs in a Web Worker. A Cloudflare Worker you own writes the MP4s to your bucket. The poster is saved as an ordinary Sanity image, so it gets the Sanity CDN, `srcset`, `auto=format` and LQIP for free.
 
@@ -30,7 +30,7 @@ That means no encoding service, no per-minute bill, and no R2 credentials outsid
 - Sanity Studio v6, React 19, `@sanity/ui` v4 or v5, `@sanity/icons` v5 and `styled-components` v6
 - Node 20 or later
 - A Cloudflare account with R2 enabled
-- Chrome to upload. Encoding needs WebCodecs h264, which Safari doesn't reliably provide, so the Studio checks for it and says so before an editor picks a file. Playback works everywhere.
+- Chrome to upload. Encoding needs WebCodecs h264, which Safari doesn't reliably provide, so the Studio checks for it and says so before anything encodes. Playback works everywhere.
 
 ## Installation
 
@@ -52,7 +52,7 @@ wrangler r2 bucket create my-bucket
 
 Then open the bucket's **Settings** in the Cloudflare dashboard and enable public access, either with the `r2.dev` development URL or a custom domain. That public origin is your `bucketUrl`, and without it nothing you upload is playable.
 
-**Note**: Uploads go through the Worker rather than the browser, so the bucket needs no CORS policy.
+**Note**: Uploads go through the Worker rather than straight to the bucket, so the bucket needs no CORS policy. Use a bucket dedicated to this plugin, as **Sync** treats every object in it as a rendition.
 
 ### 2. Scaffold the Worker
 
@@ -64,7 +64,7 @@ npx sanity-plugin-r2-video setup worker
 
 It asks for a Worker name, your Cloudflare account id, the bucket name, and the Studio origins allowed to call it. Pass `--name`, `--account`, `--bucket` and `--origins` to skip the prompts.
 
-This writes `r2-video-worker/`, containing a `wrangler.jsonc` and an entry point that re-exports this package's handler. Upgrading the package upgrades the deployed Worker.
+This writes `r2-video-worker/`, or a directory you pass, containing a `wrangler.jsonc`, a `tsconfig.json` and an entry point that re-exports this package's handler. Upgrading the package upgrades the deployed Worker.
 
 ### 3. Deploy the Worker
 
@@ -107,7 +107,7 @@ This registers an `r2Video.asset` document type, an `r2Video` field type, and an
 defineField({ name: "video", title: "Video", type: "r2Video" })
 ```
 
-To file uploads made from this field under a fixed media library folder, pass its document id:
+To preselect a media library folder for uploads made from this field, pass its document id. Editors can still change it before uploading:
 
 ```ts
 defineField({
@@ -125,10 +125,13 @@ Videos live in the **R2 Video** tool.
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Upload**   | Drop files on the library, or press Upload. Files stage in a list first and nothing encodes until you confirm.                                        |
 | **Settings** | Collapsed by default. Change the folder, keep audio, or adjust quality for one batch. **Preview** encodes only the tallest tier, so you can check size and quality before running the whole ladder. |
+| **Search**   | Matches filenames and folder names. |
+| **Filters**  | Narrow to videos **In a folder** or with **No folder**, and **In use** or **Unused**. Picking both of a pair shows both. |
+| **Select**   | Tick a card's checkbox, shown on hover, or shift-click the card. A selection can be moved to a folder or deleted together. |
 | **Details**  | Click a card to play the video and see every rendition with its size. Rename it, move it to another folder, or delete it from here.                   |
-| **Sync**     | Lists objects in the bucket that no video document claims, and posters nothing references, then offers to delete them.                                |
+| **Sync**     | Lists objects in the bucket that no video document claims, and posters in the poster folder that nothing references, then offers to delete them. |
 
-Inside a document, an `r2Video` field picks from the library or uploads without leaving the page.
+Inside a document, an `r2Video` field picks from the library, or uploads from its button or a file dropped onto it, without leaving the page.
 
 ### Playing video on your site
 
@@ -148,10 +151,11 @@ type R2VideoAsset = {
   folder?: { _type: "reference"; _ref: string };
   poster: { _type: "image"; asset: { _type: "reference"; _ref: string } };
   duration: number;                        // seconds
-  frameRate?: number;                      // constant fps of every rendition, absent before 0.1.12
+  frameRate?: number;                      // fps the renditions were encoded at, absent before 0.1.12
   hasAudio: boolean;
   uploadedAt: string;                      // ISO 8601
   renditions: {
+    _key?: string;                         // Sanity array key
     width: number;
     height: number;
     key: string;                           // R2 object key, "j6w3wy2bd0jq/720.mp4"
@@ -200,9 +204,8 @@ const src = `${bucketUrl}/${resolveRenditionPath(id, 720)}`;
 | **heights**       | `number[]` | `[270, 360, 480, 720, 1080]`  | The tier ladder. A source shorter than a tier skips it, and every tier it does reach is another full encode, so this list is what upload time costs. |
 | **videoCodec**    | `string`   | `"avc"`                       | `avc` (h264) is the only codec every browser plays from a plain `<video src>`.              |
 | **audioCodec**    | `string`   | `"aac"`                       | Used only when an upload opts into keeping audio.                                            |
-| **quality**       | `number`   | `0.75`                        | A quantizer for h264 rather than a bitrate, so quality stays constant and file size varies. `0.75` is QP 22, where h264 stops being distinguishable from the source. `1` is QP 16, near-lossless, and routinely produces files **larger than the source**. |
-| **preferBitrate** | `boolean`  | `false`                       | Flips that trade for predictable size and variable quality. A 1080p tier lands near 6.1 Mbps at `0.75` whatever the footage. |
-| **nativeTopTier** | `boolean`  | `false`                       | Copies the top rendition instead of re-encoding it, when its height and codec already match the source. Instant and bit-identical, but its size is whatever the source was exported at. |
+| **quality**       | `number`   | `0.75`                        | How much detail each frame keeps, from `0` (blocky) to `1` (near-lossless). Quality stays constant and file size follows the footage, so a static screen recording comes out small and busy camera footage large. `0.75` is hard to tell from the source. `1` routinely produces files **larger than the source**. |
+| **nativeTopTier** | `boolean`  | `false`                       | Copies the source's video into the top rendition instead of re-encoding it, when its height and codec already match. Instant and lossless, but that tier keeps the source's size and frame timing, and variable frame rates can stutter in browsers. |
 
 ## How it works
 
@@ -214,34 +217,26 @@ Studio ──encoded renditions──▶ Worker ──binding──▶ R2 bucket
 
 ### Encoding
 
-Encoding runs in a Web Worker in the editor's browser, so the Studio stays responsive. [Mediabunny](https://mediabunny.dev) drives the browser's own WebCodecs decoder and encoder, which the browser may run in hardware. Nothing is uploaded until every rendition is finished.
+Encoding runs in a Web Worker in the editor's browser. [Mediabunny](https://mediabunny.dev) drives the browser's WebCodecs decoder and encoder.
 
-For each upload:
+1. **Read** the video's size, duration, codec, and whether it has audio.
+2. **Measure the frame rate** from the most common gap between frames. A screen recording reads as its real rate, such as 60, not its lower average.
+3. **Save the first frame** as the poster, a full-size JPEG at 100% quality.
+4. **Encode each tier**, tallest first, skipping any taller than the source. A source shorter than every tier gets the shortest one:
+   - resize, keeping the aspect ratio, with the width rounded to an even number
+   - retime to a constant frame rate, repeating held frames
+   - encode with `videoCodec`, h264 by default, at a fixed compression level set by `quality`, so file size follows the footage
+   - drop the audio, or re-encode it with `audioCodec`, AAC by default, if kept
+   - write an MP4 with its index first, so playback can start before it downloads
+5. **Store** the poster in Sanity and the renditions in R2, then write the document.
 
-1. **Read.** The file is read in byte ranges as needed, never loaded into memory whole. Mediabunny parses the container (MP4, MOV, WebM, MKV and others) for the video track's display size, duration and codec, and whether there's an audio track.
-2. **Measure the frame rate.** Mediabunny reads the timestamp of every compressed frame without decoding any, and the most common gap between them sets the frame rate. A screen recording that holds single frames between 60fps bursts reads as 60, not its much lower average.
-3. **Extract the poster.** The first frame is decoded at full size and saved as a JPEG at 92% quality.
-4. **Plan the ladder.** Every configured height up to the source's own becomes a tier, tallest first, so nothing is upscaled. Widths keep the source's aspect ratio, rounded to an even number as h264 requires. A source shorter than every tier gets only the shortest one.
-5. **Encode each tier**, as a separate pass:
-   - **Decode.** Compressed frames become raw images, in display order.
-   - **Retime.** Each frame snaps to a slot at the measured frame rate. An empty slot repeats the previous frame, and when two frames land in one slot the later is kept. Output frames are exactly `1 / frameRate` apart, as browsers stutter on variable timing.
-   - **Resize.** Each frame is drawn onto a canvas at the tier's size, scaled to cover it, so the sub-pixel overflow from width rounding is cropped rather than padded with black. Downscales past 2× are drawn large and halved repeatedly, which avoids aliasing.
-   - **Encode.** h264 at a constant quantizer, `round(41 - 25 × quality)`, so `0.75` is QP 22 and `1` is QP 16. With `preferBitrate`, or a browser encoder without quantizer support, it targets a bitrate derived from the tier's resolution and `quality` instead.
-   - **Audio.** Dropped, unless the upload keeps audio and the source has a track, in which case it's decoded and re-encoded as AAC.
-   - **Write.** Frames are packed into an MP4 with its index at the front (Fast Start), so a browser can start playing before the file has downloaded.
-6. **Store.** The poster goes to Sanity, each rendition to the Worker, and the `r2Video.asset` document is written last.
-
-Only the tallest tier decodes the original. Every smaller tier is encoded from the tallest tier's finished MP4, a far smaller file to decode, which makes those tiers a second-generation encode.
-
-With `nativeTopTier`, a tallest tier whose height and codec already match the source skips decode, retime, resize and encode: its compressed frames are copied into a new MP4 unchanged. That tier keeps the source's own frame timing, variable or not.
-
-**Note**: Every encoded rendition is held in memory until the whole ladder finishes, so a closed tab loses the lot. See [When an upload fails](#when-an-upload-fails).
+Smaller tiers encode from the tallest tier's MP4 rather than the source, which is faster to decode but makes them a second-generation encode. With `nativeTopTier`, a tallest tier matching the source's height and codec is copied without re-encoding, and keeps the source's frame timing.
 
 ### Security
 
 The Worker holds the only R2 binding, so **no R2 credentials exist outside Cloudflare**. Renditions are sent as plain request bodies, which means nothing is signed and the bucket needs no CORS policy.
 
-`UPLOAD_TOKEN` ships inside the Studio bundle, because the browser is what uploads. **Anyone who can load the Studio can read it.** What actually restricts access is the Worker's origin allowlist. Put Cloudflare Access in front of the Worker if you need real authentication.
+`UPLOAD_TOKEN` ships inside the Studio bundle, because the browser is what uploads. **Anyone who can load the Studio can read it.** The Worker's origin allowlist stops other websites uploading through a visitor's browser, but a script can send any `Origin` header, so anyone with the token can write to the bucket. Put Cloudflare Access in front of the Worker if you need real authentication.
 
 ### Keys
 
@@ -260,25 +255,28 @@ Order matters here, and `delete-video.ts` documents it:
 
 Sanity goes before R2. An orphaned object is invisible and costs pennies, while a document pointing at deleted media breaks the site.
 
+Deleting a selection checks every video first, and deletes nothing if any is still in use.
+
 ### When an upload fails
 
-The document is written last, so a failure can't leave a video in the library pointing at files that aren't there. Anything created before that point is rolled back, and keys are recorded before each upload rather than after, since a request that times out may still have stored the object. Rollback never throws, so the failure that started it is what you see.
+The document is written last, so a failure can't leave a video in the library pointing at files that aren't there. The poster and any stored renditions are rolled back, and keys are recorded before each upload rather than after, since a request that times out may still have stored the object. Rollback never throws, so the failure that started it is what you see.
 
 A closed tab or a crash skips rollback, and encoded renditions live only in memory, so there's no resume. Whatever either case leaves behind is unreferenced, and **Sync** in the tool finds and removes it.
 
 ### Entry points
 
-Three, each with its own tsconfig and its own type universe:
+Three, so a consumer imports only what it needs:
 
 | Import                                | Contains           | Depends on                        |
 | ------------------------------------- | ------------------ | --------------------------------- |
-| `sanity-plugin-r2-video/studio`       | The Sanity plugin  | `react`, `react-dom`, `@sanity/ui` |
+| `sanity-plugin-r2-video/studio`       | The Sanity plugin  | `sanity`, `react`, `@sanity/ui`, `mediabunny` |
 | `sanity-plugin-r2-video/worker`       | The endpoint       | `@cloudflare/workers-types`       |
 | `sanity-plugin-r2-video/storage`      | Where files live   | Nothing                           |
 
 ## Limitations
 
-- **Uploading is Chrome-only today.** WebCodecs h264 encoding is the requirement, and the gate is a `canEncodeVideo('avc')` capability check rather than user-agent sniffing.
+- **Uploading needs WebCodecs encoding.** Chrome can encode h264 and Safari doesn't reliably. The Studio checks `canEncodeVideo` for `videoCodec` rather than sniffing the browser.
+- **Keeping audio isn't checked up front.** A browser that can't encode `audioCodec` fails after the video has already encoded.
 - **100 MB per rendition.** Each MP4 is uploaded as a single request body. The source file can be much larger, but any one tier over 100 MB is rejected with a `413`, so lower `quality` or drop the tallest tier.
 
 ## Contributing
@@ -291,13 +289,14 @@ Want to get involved, or found an issue? Please contribute using the GitHub Flow
 pnpm install
 pnpm run type-check
 pnpm run build      # tsup: ESM + types into dist
+pnpm run dev        # tsup --watch
 ```
 
 `./worker` ships as TypeScript. Wrangler compiles it, and the generated Worker extends `worker/tsconfig.json` for the compiler options it was written against.
 
 ### Linking it into a Studio
 
-Point a Studio at a checkout with a `link:` override, then allow this directory in Vite. The encoder is loaded as a worker by URL rather than imported, so it never enters the module graph Vite serves by default, and every upload fails on a 403 without this:
+Point a Studio at a checkout with a `link:` override, then allow this directory in Vite. The encoder is loaded as a worker by URL rather than imported, so it never enters the module graph Vite serves by default, and every upload fails on a 403 without this. Naming any path replaces Vite's default allow list, so include the Studio's workspace root too, or the Studio itself fails on a 403:
 
 ```ts
 // sanity.cli.ts
@@ -307,7 +306,11 @@ vite: (config) => ({
     ...config.server,
     fs: {
       ...config.server?.fs,
-      allow: [...(config.server?.fs?.allow ?? []), "/path/to/sanity-plugin-r2-video"],
+      allow: [
+        ...(config.server?.fs?.allow ?? []),
+        "/path/to/studio-workspace-root",
+        "/path/to/sanity-plugin-r2-video",
+      ],
     },
   },
 });
