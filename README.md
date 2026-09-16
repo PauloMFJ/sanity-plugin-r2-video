@@ -148,7 +148,7 @@ type R2VideoAsset = {
   folder?: { _type: "reference"; _ref: string };
   poster: { _type: "image"; asset: { _type: "reference"; _ref: string } };
   duration: number;                        // seconds
-  frameRate?: number;                      // constant fps of every rendition
+  frameRate?: number;                      // constant fps of every rendition, absent before 0.1.12
   hasAudio: boolean;
   uploadedAt: string;                      // ISO 8601
   renditions: {
@@ -211,6 +211,31 @@ Studio ──encoded renditions──▶ Worker ──binding──▶ R2 bucket
    │                                                   │
    └──poster──▶ Sanity image assets        bucket URL ─┘
 ```
+
+### Encoding
+
+Encoding runs in a Web Worker in the editor's browser, so the Studio stays responsive. [Mediabunny](https://mediabunny.dev) drives the browser's own WebCodecs decoder and encoder, which the browser may run in hardware. Nothing is uploaded until every rendition is finished.
+
+For each upload:
+
+1. **Read.** The file is read in byte ranges as needed, never loaded into memory whole. Mediabunny parses the container (MP4, MOV, WebM, MKV and others) for the video track's display size, duration and codec, and whether there's an audio track.
+2. **Measure the frame rate.** Mediabunny reads the timestamp of every compressed frame without decoding any, and the most common gap between them sets the frame rate. A screen recording that holds single frames between 60fps bursts reads as 60, not its much lower average.
+3. **Extract the poster.** The first frame is decoded at full size and saved as a JPEG at 92% quality.
+4. **Plan the ladder.** Every configured height up to the source's own becomes a tier, tallest first, so nothing is upscaled. Widths keep the source's aspect ratio, rounded to an even number as h264 requires. A source shorter than every tier gets only the shortest one.
+5. **Encode each tier**, as a separate pass:
+   - **Decode.** Compressed frames become raw images, in display order.
+   - **Retime.** Each frame snaps to a slot at the measured frame rate. An empty slot repeats the previous frame, and when two frames land in one slot the later is kept. Output frames are exactly `1 / frameRate` apart, as browsers stutter on variable timing.
+   - **Resize.** Each frame is drawn onto a canvas at the tier's size, scaled to cover it, so the sub-pixel overflow from width rounding is cropped rather than padded with black. Downscales past 2× are drawn large and halved repeatedly, which avoids aliasing.
+   - **Encode.** h264 at a constant quantizer, `round(41 - 25 × quality)`, so `0.75` is QP 22 and `1` is QP 16. With `preferBitrate`, or a browser encoder without quantizer support, it targets a bitrate derived from the tier's resolution and `quality` instead.
+   - **Audio.** Dropped, unless the upload keeps audio and the source has a track, in which case it's decoded and re-encoded as AAC.
+   - **Write.** Frames are packed into an MP4 with its index at the front (Fast Start), so a browser can start playing before the file has downloaded.
+6. **Store.** The poster goes to Sanity, each rendition to the Worker, and the `r2Video.asset` document is written last.
+
+Only the tallest tier decodes the original. Every smaller tier is encoded from the tallest tier's finished MP4, a far smaller file to decode, which makes those tiers a second-generation encode.
+
+With `nativeTopTier`, a tallest tier whose height and codec already match the source skips decode, retime, resize and encode: its compressed frames are copied into a new MP4 unchanged. That tier keeps the source's own frame timing, variable or not.
+
+**Note**: Every encoded rendition is held in memory until the whole ladder finishes, so a closed tab loses the lot. See [When an upload fails](#when-an-upload-fails).
 
 ### Security
 

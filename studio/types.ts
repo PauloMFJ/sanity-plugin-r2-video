@@ -48,7 +48,7 @@ export type R2VideoAsset = {
 	poster: R2VideoPoster;
 	duration: number;
 
-	/** Constant rate every rendition plays at. Absent on older uploads. */
+	/** Constant rate every rendition plays at. Absent on videos uploaded before 0.1.12. */
 	frameRate?: number;
 	hasAudio: boolean;
 	renditions: R2VideoRendition[];
