@@ -15,6 +15,11 @@ export const createVideoAssetSchema = (config: ResolvedR2VideoConfig) => {
 		title: "Video",
 		name: "r2Video.asset",
 		type: "document",
+
+		// Edits apply straight to the published document, as Sanity's own image
+		// assets do. A draft would list twice in the library, and publishing one
+		// later would undo a rename or bring back replaced renditions
+		liveEdit: true,
 		components: { input: InputVideoAsset },
 		fields: [
 			defineField({

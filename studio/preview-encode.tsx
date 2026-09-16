@@ -1,6 +1,11 @@
 import { Box, Button, Card, Flex, Stack, Text } from "@sanity/ui";
 import { useEffect, useState } from "react";
-import { formatBitrate, formatSize, toMessage } from "./format";
+import {
+	formatBitrate,
+	formatFrameRate,
+	formatSize,
+	toMessage,
+} from "./format";
 import { transcodeVideo } from "./transcode";
 import type { TranscodeOptions } from "./transcode.worker";
 import { Loading, Notice } from "./ui";
@@ -33,14 +38,6 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 	const [isEncoding, setIsEncoding] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [error, setError] = useState<string | null>(null);
-
-	// A preview is only valid for the settings that produced it, so drop it the
-	// moment any of them change rather than showing a stale result. Relies on
-	// `encoding` being memoised by the caller
-	useEffect(() => {
-		setPreview(null);
-		setError(null);
-	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -133,7 +130,7 @@ export const PreviewEncode = ({ file, keepAudio, encoding }: Props) => {
 						<Text muted size={1}>
 							{preview.width} × {preview.height} · {formatSize(preview.bytes)} ·{" "}
 							{formatBitrate(preview.bytes, preview.duration)}
-							{preview.frameRate && ` · ${preview.frameRate} fps`}
+							{preview.frameRate && ` · ${formatFrameRate(preview.frameRate)}`}
 						</Text>
 						<Text muted size={0}>
 							This is the largest rendition. Smaller tiers are a fraction of it.

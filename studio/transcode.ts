@@ -1,4 +1,3 @@
-import { canEncodeVideo, type VideoCodec } from "mediabunny";
 import type {
 	TranscodedRendition,
 	TranscodeMessage,
@@ -6,24 +5,10 @@ import type {
 } from "./transcode.worker";
 
 export type { TranscodedRendition };
-export type TranscodeResult = {
-	duration: number;
-	frameRate?: number;
-	hasAudio: boolean;
-	poster: Blob;
-	posterWidth: number;
-	posterHeight: number;
-	renditions: TranscodedRendition[];
-};
-
-/**
- * Whether this browser can encode the configured codec. Chrome can encode the
- * h264 default; the gate exists so anything that can't gets told, rather than
- * failing halfway through an upload.
- */
-export const canEncodeLadder = (codec: VideoCodec) => {
-	return canEncodeVideo(codec);
-};
+export type TranscodeResult = Omit<
+	Extract<TranscodeMessage, { type: "result" }>,
+	"type"
+>;
 
 /**
  * Runs the whole ladder in a worker. Mediabunny does not move off the main

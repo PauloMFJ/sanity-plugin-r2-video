@@ -123,7 +123,6 @@ export const DialogDetails = ({
 			setIsFlagged(false);
 			onChanged();
 		} catch (caught) {
-			reset();
 			setError(toMessage(caught));
 		}
 
@@ -140,23 +139,23 @@ export const DialogDetails = ({
 			footer={
 				<DialogActions
 					aside={
-						<Flex gap={2}>
-							<Button
-								aria-label="Delete video"
-								disabled={isSaving}
-								icon={TrashIcon}
-								mode="ghost"
-								tone="critical"
-								onClick={onDelete}
-							/>
+						<>
 							<Button
 								disabled={isSaving || isDirty}
 								icon={UploadIcon}
-								mode="ghost"
+								mode="bleed"
 								text="Replace"
 								onClick={onReplace}
 							/>
-						</Flex>
+							<Button
+								disabled={isSaving}
+								icon={TrashIcon}
+								mode="bleed"
+								text="Delete"
+								tone="critical"
+								onClick={onDelete}
+							/>
+						</>
 					}
 					cancel={{
 						text: isDirty ? "Discard" : "Close",
@@ -164,14 +163,14 @@ export const DialogDetails = ({
 						onClick: isDirty ? reset : onClose,
 					}}
 					confirm={
-						isBroken
-							? undefined
-							: {
+						isDirty && !isBroken
+							? {
 									text: isSaving ? "Saving…" : "Save changes",
 									tone: "primary",
-									disabled: isSaving || !isDirty,
+									disabled: isSaving,
 									onClick: save,
 								}
+							: undefined
 					}
 				/>
 			}

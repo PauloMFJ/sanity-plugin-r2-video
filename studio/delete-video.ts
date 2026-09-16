@@ -29,7 +29,12 @@ export const deleteVideoAsset = async (
 	config: R2VideoPluginConfig,
 	asset: R2VideoAsset,
 ) => {
-	await client.delete(asset._id);
+	// The draft too, in case one predates live editing
+	await client
+		.transaction()
+		.delete(asset._id)
+		.delete(`drafts.${asset._id}`)
+		.commit();
 
 	// Both are missing on a document the pipeline never finished writing, and
 	// deleting one of those has to work - it's the only way to be rid of it

@@ -10,6 +10,9 @@ const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9/_-]*\.mp4$/;
 /** Maximum size of a single upload. Currently 100 MB. */
 const MAX_BYTES = 100 * 1024 * 1024;
 
+/** Most keys R2 deletes in one call. */
+const MAX_KEYS_PER_DELETE = 1000;
+
 const isAllowedOrigin = (origin: string | null, env: Env): origin is string => {
 	if (!origin) return false;
 
@@ -126,7 +129,10 @@ const deleteKeys = async (request: Request, env: Env, headers: HeadersInit) => {
 		return jsonResponse({ error: "Invalid object keys." }, 400, headers);
 	}
 
-	await env.BUCKET.delete(keys);
+	// A sync can find more orphans than R2 deletes at once
+	for (let start = 0; start < keys.length; start += MAX_KEYS_PER_DELETE) {
+		await env.BUCKET.delete(keys.slice(start, start + MAX_KEYS_PER_DELETE));
+	}
 
 	return jsonResponse({ deleted: keys.length }, 200, headers);
 };

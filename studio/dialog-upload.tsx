@@ -1,12 +1,12 @@
 import { UploadIcon } from "@sanity/icons/Upload";
 import { Box, Button, Card, Dialog, Flex, Stack, Text } from "@sanity/ui";
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { canEncodeAudio, canEncodeVideo } from "mediabunny";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { useR2VideoClient } from "./config-context";
 import { DropToUpload, useFileDrop } from "./file-drop";
 import { useFolders } from "./folders";
 import { formatSize, pluralize, toMessage } from "./format";
 import { PreviewEncode } from "./preview-encode";
-import { canEncodeLadder } from "./transcode";
 import type { R2VideoAsset } from "./types";
 import { DialogActions, Notice } from "./ui";
 import { UnsupportedBrowser } from "./unsupported-browser";
@@ -108,6 +108,7 @@ export const DialogUpload = ({
 	const { paths } = useFolders();
 
 	const [canEncode, setCanEncode] = useState<boolean | null>(null);
+	const [canKeepAudio, setCanKeepAudio] = useState(true);
 	const [targetFolder, setTargetFolder] = useState(folderId);
 	const [keepAudio, setKeepAudio] = useState(false);
 	const [quality, setQuality] = useState(config.encoding.quality);
@@ -119,18 +120,13 @@ export const DialogUpload = ({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		canEncodeLadder(config.encoding.videoCodec).then(setCanEncode);
-	}, [config.encoding.videoCodec]);
+		canEncodeVideo(config.encoding.videoCodec).then(setCanEncode);
+		canEncodeAudio(config.encoding.audioCodec).then(setCanKeepAudio);
+	}, [config.encoding.videoCodec, config.encoding.audioCodec]);
 
 	// Config supplies the starting point; each upload can then diverge without
-	// touching the Studio's own defaults.
-	//
-	// Memoised because `PreviewEncode` treats a change here as "these settings
-	// are no longer the ones that produced the preview" and clears it. A fresh
-	// object every render would clear the preview the moment it appeared.
-	const encoding = useMemo(() => {
-		return { ...config.encoding, quality };
-	}, [config.encoding, quality]);
+	// touching the Studio's own defaults
+	const encoding = { ...config.encoding, quality };
 
 	const pending = items.filter((item) => item.status === "pending");
 	const isBusy = items.some((item) => item.status === "working");
@@ -160,7 +156,7 @@ export const DialogUpload = ({
 					config,
 					file: item.file,
 					folderId: targetFolder,
-					keepAudio,
+					keepAudio: keepAudio && canKeepAudio,
 					encoding,
 					replacing,
 					progressed: (progress) => update(item.id, { progress }),
@@ -255,10 +251,11 @@ export const DialogUpload = ({
 					{canEncode === false && <UnsupportedBrowser />}
 
 					{replacing && (
-						<Notice tone="caution">
-							Everything using this video shows the new one, and its old
-							renditions and poster are deleted. The name and folder stay the
-							same.
+						<Notice
+							title="Note: This replaces this video everywhere it's used."
+							tone="caution"
+						>
+							It keeps its name and folder. The old files are deleted.
 						</Notice>
 					)}
 
@@ -352,16 +349,20 @@ export const DialogUpload = ({
 						folderId={targetFolder}
 						folderPaths={paths}
 						isDisabled={isBusy}
-						keepAudio={keepAudio}
+						canKeepAudio={canKeepAudio}
+						keepAudio={keepAudio && canKeepAudio}
 						quality={quality}
 						onFolderChange={replacing ? undefined : setTargetFolder}
 						onKeepAudioChange={setKeepAudio}
 						onQualityChange={setQuality}
 					>
+						{/* Keyed on its inputs, so changing any drops a preview that no
+						    longer matches them */}
 						<PreviewEncode
+							key={`${pending[0]?.id}-${keepAudio}-${quality}`}
 							encoding={encoding}
 							file={pending.length > 0 ? pending[0].file : null}
-							keepAudio={keepAudio}
+							keepAudio={keepAudio && canKeepAudio}
 						/>
 					</UploadSettings>
 				</Stack>

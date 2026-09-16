@@ -1,4 +1,4 @@
-import { Box, Button, Card, Flex, Spinner, Stack, Text } from "@sanity/ui";
+import { Button, Card, Flex, Spinner, Stack, Text } from "@sanity/ui";
 import type { ReactNode } from "react";
 
 type NoticeProps = {
@@ -89,31 +89,27 @@ export const DialogActions = ({
 	confirm,
 }: DialogActionsProps) => {
 	return (
-		<Card borderTop padding={2}>
-			<Flex gap={2}>
-				{aside}
+		<Card borderTop padding={3}>
+			<Flex align="center" gap={2} justify="space-between">
+				<Flex gap={2}>{aside}</Flex>
 
-				<Box flex={1}>
+				<Flex gap={2}>
 					<Button
 						disabled={cancel.disabled}
 						mode="ghost"
 						text={cancel.text}
-						width="fill"
 						onClick={cancel.onClick}
 					/>
-				</Box>
 
-				{confirm && (
-					<Box flex={1}>
+					{confirm && (
 						<Button
 							disabled={confirm.disabled}
 							text={confirm.text}
 							tone={confirm.tone}
-							width="fill"
 							onClick={confirm.onClick}
 						/>
-					</Box>
-				)}
+					)}
+				</Flex>
 			</Flex>
 		</Card>
 	);

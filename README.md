@@ -220,7 +220,7 @@ Studio ──encoded renditions──▶ Worker ──binding──▶ R2 bucket
 Encoding runs in a Web Worker in the editor's browser. [Mediabunny](https://mediabunny.dev) drives the browser's WebCodecs decoder and encoder.
 
 1. **Read** the video's size, duration, codec, and whether it has audio.
-2. **Measure the frame rate** from the most common gap between frames. A screen recording reads as its real rate, such as 60, not its lower average.
+2. **Measure the frame rate** from the most common gap between frames, so 29.97 stays 29.97. A screen recording reads as its real rate, such as 60, not its lower average.
 3. **Save the first frame** as the poster, a full-size JPEG at 100% quality.
 4. **Encode each tier**, tallest first, skipping any taller than the source. A source shorter than every tier gets the shortest one:
    - resize, keeping the aspect ratio, with the width rounded to an even number
@@ -230,7 +230,7 @@ Encoding runs in a Web Worker in the editor's browser. [Mediabunny](https://medi
    - write an MP4 with its index first, so playback can start before it downloads
 5. **Store** the poster in Sanity and the renditions in R2, then write the document.
 
-Smaller tiers encode from the tallest tier's MP4 rather than the source, which is faster to decode but makes them a second-generation encode. With `nativeTopTier`, a tallest tier matching the source's height and codec is copied without re-encoding, and keeps the source's frame timing.
+Every tier encodes from the source, so none is a copy of another's compression. With `nativeTopTier`, a tallest tier matching the source's height and codec is copied without re-encoding, and keeps the source's frame timing.
 
 ### Security
 
@@ -259,7 +259,7 @@ If anything fails before the transaction commits, the new files are rolled back 
 Order matters here, and `delete-video.ts` documents it:
 
 1. Preflight `*[references($id)]`. Anything found blocks the delete.
-2. Delete the document, which releases the strong reference to the poster.
+2. Delete the document and any draft of it, which releases the strong reference to the poster.
 3. Delete the poster asset, now unreferenced, so no `409`.
 4. Delete the R2 objects, batched.
 
@@ -286,7 +286,7 @@ Three, so a consumer imports only what it needs:
 ## Limitations
 
 - **Uploading needs WebCodecs encoding.** Chrome can encode h264 and Safari doesn't reliably. The Studio checks `canEncodeVideo` for `videoCodec` rather than sniffing the browser.
-- **Keeping audio isn't checked up front.** A browser that can't encode `audioCodec` fails after the video has already encoded.
+- **Keeping audio needs WebCodecs encoding of `audioCodec`.** Where the browser can't, the Keep audio setting is disabled and audio is dropped.
 - **100 MB per rendition.** Each MP4 is uploaded as a single request body. The source file can be much larger, but any one tier over 100 MB is rejected with a `413`, so lower `quality` or drop the tallest tier.
 
 ## Contributing

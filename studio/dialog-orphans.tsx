@@ -78,6 +78,12 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 		>
 			<Card padding={4}>
 				<Stack gap={4}>
+					<Text muted size={1}>
+						Finds files left behind by interrupted uploads: Includes renditions
+						in your bucket that no video uses, and posters that nothing
+						references. Removing them is safe.
+					</Text>
+
 					{!orphans && !error && (
 						<Loading>Comparing storage against the library…</Loading>
 					)}
@@ -98,8 +104,7 @@ export const DialogOrphans = ({ onCleaned, onClose }: Props) => {
 								Sanity.
 							</Text>
 							<Text muted size={1}>
-								Nothing references any of them, so removing them can't affect
-								the site. This can't be undone.
+								This can't be undone.
 							</Text>
 						</Stack>
 					)}

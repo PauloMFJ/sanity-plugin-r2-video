@@ -1,5 +1,10 @@
 import { Box, Card, Flex, Grid, Stack, Text } from "@sanity/ui";
-import { formatDuration, formatSize, totalSize } from "./format";
+import {
+	formatDuration,
+	formatFrameRate,
+	formatSize,
+	totalSize,
+} from "./format";
 import type { R2VideoRendition } from "./types";
 
 type FactProps = {
@@ -54,7 +59,7 @@ export const VideoSummary = ({
 					<Fact label="Duration" value={formatDuration(duration)} />
 					<Fact
 						label="Frame rate"
-						value={frameRate ? `${frameRate} fps` : "Unknown"}
+						value={frameRate ? formatFrameRate(frameRate) : "Unknown"}
 					/>
 					<Fact label="Audio" value={hasAudio ? "Kept" : "Stripped"} />
 					<Fact label="Total" value={formatSize(totalSize(renditions))} />

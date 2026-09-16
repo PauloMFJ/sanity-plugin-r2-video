@@ -159,32 +159,49 @@ export const uploadVideo = async ({
 			.commit();
 
 		const id = createId();
+		const keys = encoded.renditions.map((rendition) => {
+			return resolveRenditionPath(id, rendition.height);
+		});
+
+		// Recorded before any request, not after - one that times out may still
+		// have stored its object, and an untracked key is unreachable
+		written.keys.push(...keys);
+
+		let storedCount = 0;
+
+		// Settled rather than raced, so rollback can't run while a request is
+		// still in flight and about to store an object it would miss
+		const results = await Promise.allSettled(
+			encoded.renditions.map(async (rendition, index) => {
+				const stored = await uploadObject(config, keys[index], rendition.data);
+
+				storedCount += 1;
+				progressed({
+					stage: "storing",
+					progress: storedCount / encoded.renditions.length,
+					label: `${rendition.height}p`,
+				});
+
+				return {
+					// One rendition per height, so the height is already the unique
+					// key Sanity needs on an array item
+					_key: String(rendition.height),
+					width: rendition.width,
+					height: rendition.height,
+					key: stored.key,
+					size: stored.size,
+				};
+			}),
+		);
+
 		const renditions: R2VideoRendition[] = [];
 
-		for (const [index, rendition] of encoded.renditions.entries()) {
-			const key = resolveRenditionPath(id, rendition.height);
+		for (const result of results) {
+			if (result.status === "rejected") {
+				throw result.reason;
+			}
 
-			// Recorded before the upload, not after - a request that times out may
-			// still have stored the object, and an untracked key is unreachable
-			written.keys.push(key);
-
-			const stored = await uploadObject(config, key, rendition.data);
-
-			renditions.push({
-				// One rendition per height, so the height is already the unique key
-				// Sanity needs on an array item
-				_key: String(rendition.height),
-				width: rendition.width,
-				height: rendition.height,
-				key: stored.key,
-				size: stored.size,
-			});
-
-			progressed({
-				stage: "storing",
-				progress: (index + 1) / encoded.renditions.length,
-				label: `${rendition.height}p`,
-			});
+			renditions.push(result.value);
 		}
 
 		progressed({ stage: "saving", progress: 1, label: name });

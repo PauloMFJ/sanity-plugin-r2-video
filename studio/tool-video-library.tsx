@@ -1,24 +1,17 @@
-import { CheckmarkIcon } from "@sanity/icons/Checkmark";
-import { FilterIcon } from "@sanity/icons/Filter";
 import { SearchIcon } from "@sanity/icons/Search";
 import { SyncIcon } from "@sanity/icons/Sync";
-import { TrashIcon } from "@sanity/icons/Trash";
 import { UploadIcon } from "@sanity/icons/Upload";
 import {
 	Box,
 	Button,
 	Card,
-	Checkbox,
 	Flex,
 	Grid,
-	Select,
 	Stack,
 	Text,
 	TextInput,
 } from "@sanity/ui";
-import { Menu, MenuButton, MenuDivider, MenuItem } from "@sanity/ui/menu";
-import { Fragment, useCallback, useEffect, useState } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useState } from "react";
 import { useR2VideoClient } from "./config-context";
 import { DialogDelete } from "./dialog-delete";
 import { DialogDetails } from "./dialog-details";
@@ -26,15 +19,13 @@ import { DialogOrphans } from "./dialog-orphans";
 import { DialogUpload } from "./dialog-upload";
 import { DropToUpload, useFileDrop } from "./file-drop";
 import { FolderSidebar } from "./folder-sidebar";
-import {
-	fetchFolders,
-	type MediaFolder,
-	resolveFolderPaths,
-	useFolders,
-} from "./folders";
-import { pluralize } from "./format";
+import { fetchFolders, type MediaFolder, resolveFolderPaths } from "./folders";
+import { toMessage } from "./format";
+import { LibraryFilters, passesFilters, toggleFilter } from "./library-filters";
+import { SelectionBar } from "./selection-bar";
 import type { R2VideoAsset } from "./types";
-import { Loading } from "./ui";
+import { Loading, Notice } from "./ui";
+import { VideoCard } from "./video-card";
 
 /**
  * Every field the upload pipeline writes is coalesced, because a document it
@@ -46,7 +37,7 @@ import { Loading } from "./ui";
  * `poster` and `uploadedAt` are left alone: both already read as optional
  * everywhere they're used.
  */
-const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
+const QUERY_ASSETS = `*[_type == "r2Video.asset" && !(_id in path("drafts.**"))] | order(uploadedAt desc){
 	_id,
 	_type,
 	"filename": coalesce(filename, ""),
@@ -57,41 +48,10 @@ const QUERY_ASSETS = `*[_type == "r2Video.asset"] | order(uploadedAt desc){
 	"hasAudio": coalesce(hasAudio, false),
 	"renditions": coalesce(renditions, []),
 	uploadedAt,
-	"isUsed": count(*[references(^._id)]) > 0,
+	"isUsed": defined(*[references(^._id)][0]._id),
 	"posterUrl": poster.asset->url,
 	"folderName": folder->name
 }`;
-
-/**
- * Folder name in the same shape as an object key - lowercased, punctuation
- * collapsed to hyphens - so a card reads like the path it came from.
- */
-const slugify = (name: string) => {
-	return (
-		name
-			.toLowerCase()
-			// Dropped rather than hyphenated, so a possessive reads as one word
-			// - "Hannon's" becomes `hannons`, not `hannon-s`
-			.replace(/['\u2019]/g, "")
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-+|-+$/g, "")
-	);
-};
-
-/**
- * `folder/name`, or just the name when there's no folder to show - either
- * because the video has none, or because the grid is already filtered to one
- * and repeating it on every card says nothing.
- */
-const toTitle = (asset: LibraryAsset, isFiltered: boolean) => {
-	const filename = asset.filename || "Untitled video";
-
-	if (isFiltered || !asset.folderName) {
-		return filename;
-	}
-
-	return `${slugify(asset.folderName)}/${filename}`;
-};
 
 export type LibraryAsset = R2VideoAsset & {
 	isUsed: boolean;
@@ -113,73 +73,15 @@ const matches = (asset: LibraryAsset, search: string) => {
 	);
 };
 
-/**
- * What the library can be narrowed to. Filters in the same group widen each
- * other; filters from different groups narrow.
- */
-const FILTERS = [
-	{
-		key: "foldered",
-		group: "folder",
-		label: "In a folder",
-		test: (asset: LibraryAsset) => Boolean(asset.folder),
-	},
-	{
-		key: "unfoldered",
-		group: "folder",
-		label: "No folder",
-		test: (asset: LibraryAsset) => !asset.folder,
-	},
-	{
-		key: "used",
-		group: "usage",
-		label: "In use",
-		test: (asset: LibraryAsset) => asset.isUsed,
-	},
-	{
-		key: "unused",
-		group: "usage",
-		label: "Unused",
-		test: (asset: LibraryAsset) => !asset.isUsed,
-	},
-];
-
-const FILTER_GROUPS = [...new Set(FILTERS.map((filter) => filter.group))];
-
-const passesFilters = (asset: LibraryAsset, keys: string[]) => {
-	const active = FILTERS.filter((filter) => keys.includes(filter.key));
-
-	return FILTER_GROUPS.every((group) => {
-		const inGroup = active.filter((filter) => filter.group === group);
-
-		return inGroup.length === 0 || inGroup.some((filter) => filter.test(asset));
-	});
+/** Adds an entry to a list, or removes it if it's already there. */
+const toggle = (list: string[], entry: string) => {
+	return list.includes(entry)
+		? list.filter((existing) => existing !== entry)
+		: [...list, entry];
 };
-
-/**
- * Its checkbox stays hidden until the card is hovered, focused, or picked. In
- * CSS rather than hover state, which would re-render the grid on every move.
- */
-const SelectableCard = styled(Box)`
-	position: relative;
-
-	& [data-checkbox] {
-		opacity: 0;
-	}
-
-	&:hover [data-checkbox],
-	& [data-checkbox]:focus-within,
-	& [data-checkbox][data-selected="true"] {
-		opacity: 1;
-	}
-`;
 
 export const ToolVideoLibrary = () => {
 	const { config, client } = useR2VideoClient();
-
-	// Every folder, not only those already holding video - a selection is often
-	// moved somewhere new
-	const { paths: allPaths } = useFolders();
 
 	const [assets, setAssets] = useState<LibraryAsset[] | null>(null);
 	const [folders, setFolders] = useState<MediaFolder[]>([]);
@@ -188,12 +90,13 @@ export const ToolVideoLibrary = () => {
 	const [isUploadOpen, setIsUploadOpen] = useState(false);
 	const [isOrphansOpen, setIsOrphansOpen] = useState(false);
 	const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-	const [detailing, setDetailing] = useState<LibraryAsset | null>(null);
+	const [detailingId, setDetailingId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<LibraryAsset[] | null>(null);
 	const [replacing, setReplacing] = useState<LibraryAsset | null>(null);
 	const [filterKeys, setFilterKeys] = useState<string[]>([]);
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [isMoving, setIsMoving] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const load = useCallback(() => {
 		client.fetch<LibraryAsset[]>(QUERY_ASSETS).then(setAssets);
@@ -213,11 +116,15 @@ export const ToolVideoLibrary = () => {
 		}
 	}
 
+	// Every folder, as a selection is often moved somewhere new
+	const allPaths = resolveFolderPaths(folders);
+
 	// Only folders that actually hold video - the image library's full tree
 	// would bury the handful that matter here
-	const paths = resolveFolderPaths(folders).filter((entry) => {
-		return counts.has(entry.id);
-	});
+	const paths = allPaths.filter((entry) => counts.has(entry.id));
+
+	// Looked up each render, so a save that reloads the library reaches it
+	const detailing = assets?.find((asset) => asset._id === detailingId) ?? null;
 
 	// Disabled while the upload dialog is open - that dialog owns drops from
 	// then on, and a surface underneath must not also react to them
@@ -247,25 +154,10 @@ export const ToolVideoLibrary = () => {
 
 	const selected = visible.filter((asset) => selectedIds.includes(asset._id));
 
-	const toggleFilter = (key: string) => {
-		setFilterKeys((current) => {
-			return current.includes(key)
-				? current.filter((entry) => entry !== key)
-				: [...current, key];
-		});
-	};
-
-	const toggleSelected = (id: string) => {
-		setSelectedIds((current) => {
-			return current.includes(id)
-				? current.filter((entry) => entry !== id)
-				: [...current, id];
-		});
-	};
-
 	/** Files the selection into a folder, or out of one when given no id. */
 	const moveSelected = async (targetId: string) => {
 		setIsMoving(true);
+		setError(null);
 
 		let transaction = client.transaction();
 
@@ -277,11 +169,15 @@ export const ToolVideoLibrary = () => {
 				: transaction.patch(asset._id, (patch) => patch.unset(["folder"]));
 		}
 
-		await transaction.commit();
+		try {
+			await transaction.commit();
+			setSelectedIds([]);
+			load();
+		} catch (caught) {
+			setError(toMessage(caught));
+		}
 
 		setIsMoving(false);
-		setSelectedIds([]);
-		load();
 	};
 
 	return (
@@ -309,44 +205,10 @@ export const ToolVideoLibrary = () => {
 									onChange={(event) => setSearch(event.currentTarget.value)}
 								/>
 							</Box>
-							<MenuButton
-								button={
-									<Button
-										icon={FilterIcon}
-										mode={filterKeys.length > 0 ? "default" : "ghost"}
-										text={
-											filterKeys.length > 0
-												? `Filters (${filterKeys.length})`
-												: "Filters"
-										}
-										tone={filterKeys.length > 0 ? "primary" : "default"}
-									/>
-								}
-								id="r2-video-filters"
-								menu={
-									<Menu>
-										{FILTERS.map((filter, index) => (
-											<Fragment key={filter.key}>
-												{index > 0 &&
-													FILTERS[index - 1].group !== filter.group && (
-														<MenuDivider />
-													)}
 
-												<MenuItem
-													iconRight={
-														filterKeys.includes(filter.key)
-															? CheckmarkIcon
-															: undefined
-													}
-													pressed={filterKeys.includes(filter.key)}
-													text={filter.label}
-													onClick={() => toggleFilter(filter.key)}
-												/>
-											</Fragment>
-										))}
-									</Menu>
-								}
-								popover={{ placement: "bottom-start" }}
+							<LibraryFilters
+								activeKeys={filterKeys}
+								onToggle={(key) => setFilterKeys(toggleFilter(filterKeys, key))}
 							/>
 
 							<Button
@@ -365,52 +227,17 @@ export const ToolVideoLibrary = () => {
 						</Flex>
 
 						{selected.length > 0 && (
-							<Card border padding={2} radius={2} tone="primary">
-								<Flex align="center" gap={2}>
-									<Box paddingX={2}>
-										<Text size={1} weight="medium">
-											{pluralize(selected.length, "video")} selected
-										</Text>
-									</Box>
-
-									<Box flex={1}>
-										<Select
-											aria-label="Move to folder"
-											disabled={isMoving}
-											value=""
-											onChange={(event) =>
-												moveSelected(event.currentTarget.value)
-											}
-										>
-											<option value="" disabled>
-												Move to…
-											</option>
-											<option value="">No folder</option>
-											{allPaths.map((entry) => (
-												<option key={entry.id} value={entry.id}>
-													{entry.path}
-												</option>
-											))}
-										</Select>
-									</Box>
-
-									<Button
-										disabled={isMoving}
-										mode="ghost"
-										text="Clear"
-										onClick={() => setSelectedIds([])}
-									/>
-									<Button
-										disabled={isMoving}
-										icon={TrashIcon}
-										mode="ghost"
-										text="Delete"
-										tone="critical"
-										onClick={() => setDeleting(selected)}
-									/>
-								</Flex>
-							</Card>
+							<SelectionBar
+								count={selected.length}
+								folderPaths={allPaths}
+								isMoving={isMoving}
+								onClear={() => setSelectedIds([])}
+								onDelete={() => setDeleting(selected)}
+								onMove={moveSelected}
+							/>
 						)}
+
+						{error && <Notice tone="critical">{error}</Notice>}
 
 						{assets === null && (
 							<Box padding={4}>
@@ -421,80 +248,25 @@ export const ToolVideoLibrary = () => {
 						{assets !== null && visible.length === 0 && (
 							<Card padding={5} radius={2} tone="transparent">
 								<Text align="center" muted size={1}>
-									No videos here yet.
+									{search || folderId || filterKeys.length > 0
+										? "No videos match."
+										: "No videos here yet."}
 								</Text>
 							</Card>
 						)}
 
 						<Grid gridTemplateColumns={[1, 2, 3, 4]} gap={3}>
 							{visible.map((asset) => (
-								<SelectableCard key={asset._id}>
-									{/* Beside the card rather than inside it - a checkbox
-									    within a button is neither valid nor clickable */}
-									<Box
-										data-checkbox
-										data-selected={selectedIds.includes(asset._id)}
-										style={{
-											position: "absolute",
-											top: 14,
-											left: 14,
-											zIndex: 1,
-										}}
-									>
-										<Checkbox
-											aria-label={`Select ${asset.filename}`}
-											checked={selectedIds.includes(asset._id)}
-											onChange={() => toggleSelected(asset._id)}
-										/>
-									</Box>
-
-									<Card
-										as="button"
-										border
-										padding={2}
-										radius={2}
-										style={{
-											cursor: "pointer",
-											textAlign: "left",
-											width: "100%",
-										}}
-										onClick={(event) => {
-											// Shift picks a card out without opening it, so a
-											// selection can be built without aiming at checkboxes
-											if (event.shiftKey) {
-												toggleSelected(asset._id);
-												return;
-											}
-
-											setDetailing(asset);
-										}}
-									>
-										<Stack gap={3}>
-											<Box
-												style={{
-													aspectRatio: "16 / 9",
-													backgroundImage: asset.posterUrl
-														? `url(${asset.posterUrl}?w=480&fit=crop&auto=format)`
-														: undefined,
-													backgroundPosition: "center",
-													backgroundSize: "cover",
-													borderRadius: 2,
-												}}
-											/>
-
-											<Stack gap={2}>
-												<Text size={1} textOverflow="ellipsis" weight="medium">
-													{toTitle(asset, Boolean(folderId))}
-												</Text>
-												<Text muted size={1}>
-													{asset.renditions.length} sizes
-													{asset.hasAudio ? " · audio" : ""}
-													{asset.isUsed ? "" : " · unused"}
-												</Text>
-											</Stack>
-										</Stack>
-									</Card>
-								</SelectableCard>
+								<VideoCard
+									key={asset._id}
+									asset={asset}
+									isInFolderView={Boolean(folderId)}
+									isSelected={selectedIds.includes(asset._id)}
+									onOpen={() => setDetailingId(asset._id)}
+									onToggle={() =>
+										setSelectedIds((current) => toggle(current, asset._id))
+									}
+								/>
 							))}
 						</Grid>
 					</Stack>
@@ -527,13 +299,13 @@ export const ToolVideoLibrary = () => {
 						// Hand off rather than stacking dialogs - the delete needs the
 						// whole surface for its usage list
 						setDeleting([detailing]);
-						setDetailing(null);
+						setDetailingId(null);
 					}}
 					onReplace={() => {
 						setReplacing(detailing);
-						setDetailing(null);
+						setDetailingId(null);
 					}}
-					onClose={() => setDetailing(null)}
+					onClose={() => setDetailingId(null)}
 				/>
 			)}
 

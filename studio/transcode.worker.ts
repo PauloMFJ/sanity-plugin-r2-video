@@ -40,12 +40,9 @@ const resolveWidth = (height: number, aspectRatio: number): number => {
 
 /**
  * The rate frames arrive at while something moves: the most common gap between
- * frames. Not the average - a screen recording holds frames while nothing
- * changes, dragging its average far below its real cadence. Reads timestamps
- * only, so nothing is decoded.
- *
- * Whole rates only, so 29.97 becomes 30 and drifts a frame every ~33s. Fine
- * for short clips.
+ * frames, averaged so 29.97 stays 29.97. Not the average of every gap - a
+ * screen recording holds frames while nothing changes, dragging that far below
+ * its real cadence. Reads timestamps only, so nothing is decoded.
  */
 const resolveFrameRate = async (track: InputVideoTrack) => {
 	const timestamps: number[] = [];
@@ -60,26 +57,37 @@ const resolveFrameRate = async (track: InputVideoTrack) => {
 	// Decode order, which B-frames put out of display order
 	timestamps.sort((a, b) => a - b);
 
-	const counts = new Map<number, number>();
+	// Grouped by nearest whole rate, which absorbs timestamp rounding without
+	// merging genuinely different cadences
+	const groups = new Map<number, number[]>();
 
 	for (let index = 1; index < timestamps.length; index += 1) {
 		const gap = timestamps[index] - timestamps[index - 1];
 		const rate = gap > 0 ? Math.round(1 / gap) : 0;
 
 		if (rate >= 1) {
-			counts.set(rate, (counts.get(rate) ?? 0) + 1);
+			const group = groups.get(rate) ?? [];
+			group.push(gap);
+			groups.set(rate, group);
 		}
 	}
 
-	let peak: number | undefined;
+	let peak: number[] = [];
 
-	for (const [rate, count] of counts) {
-		if (peak === undefined || count > (counts.get(peak) ?? 0)) {
-			peak = rate;
+	for (const gaps of groups.values()) {
+		if (gaps.length > peak.length) {
+			peak = gaps;
 		}
 	}
 
-	return peak;
+	if (peak.length === 0) {
+		return undefined;
+	}
+
+	const meanGap = peak.reduce((total, gap) => total + gap, 0) / peak.length;
+
+	// Three decimals keep 29.97 and 23.976 while dropping float noise
+	return Math.round((1 / meanGap) * 1000) / 1000;
 };
 
 /** Encoding settings, resolved by the caller so this file holds no defaults. */
@@ -244,11 +252,6 @@ const transcode = async ({
 	const aspectRatio = sourceWidth / sourceHeight;
 	const renditions: TranscodedRendition[] = [];
 
-	// The largest tier encodes from the source; every smaller tier re-encodes
-	// from that result instead, so the source is decoded once rather than once
-	// per tier. Nothing ends up more than two generations deep
-	let ladderSource: Blob = file;
-
 	for (const [index, height] of heights.entries()) {
 		const width = resolveWidth(height, aspectRatio);
 
@@ -261,7 +264,7 @@ const transcode = async ({
 			sourceCodec === options.videoCodec;
 
 		const data = await encodeRendition(
-			ladderSource,
+			file,
 			width,
 			height,
 			hasAudio,
@@ -278,10 +281,6 @@ const transcode = async ({
 		);
 
 		renditions.push({ width, height, data });
-
-		if (index === 0) {
-			ladderSource = new Blob([data], { type: "video/mp4" });
-		}
 	}
 
 	return {

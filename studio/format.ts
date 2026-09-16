@@ -1,3 +1,8 @@
+/** A frame rate to two decimals at most, so 29.97002997 reads as 29.97. */
+export const formatFrameRate = (rate: number) => {
+	return `${Number(rate.toFixed(2))} fps`;
+};
+
 /**
  * A byte count in the unit that carries information.
  *

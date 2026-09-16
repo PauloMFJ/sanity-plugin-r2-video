@@ -44,6 +44,9 @@ type Props = {
 	folderId: string;
 	folderPaths: FolderPath[];
 	keepAudio: boolean;
+
+	/** False when this browser can't encode audio, which disables keeping it. */
+	canKeepAudio: boolean;
 	quality: number;
 	isDisabled: boolean;
 
@@ -65,6 +68,7 @@ export const UploadSettings = ({
 	folderId,
 	folderPaths,
 	keepAudio,
+	canKeepAudio,
 	quality,
 	isDisabled,
 	onFolderChange,
@@ -119,11 +123,15 @@ export const UploadSettings = ({
 					<ToggleRow
 						id={audioInputId}
 						label="Keep audio"
-						description="Loops still play muted - autoplay requires it."
+						description={
+							canKeepAudio
+								? "Loops still play muted - autoplay requires it."
+								: "This browser can't encode audio, so it's dropped."
+						}
 					>
 						<Switch
 							checked={keepAudio}
-							disabled={isDisabled}
+							disabled={isDisabled || !canKeepAudio}
 							id={audioInputId}
 							onChange={(event) =>
 								onKeepAudioChange(event.currentTarget.checked)
