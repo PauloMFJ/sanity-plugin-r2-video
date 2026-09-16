@@ -46,7 +46,9 @@ type Props = {
 	keepAudio: boolean;
 	quality: number;
 	isDisabled: boolean;
-	onFolderChange: (folderId: string) => void;
+
+	/** Omitted when the folder can't change, which hides the field. */
+	onFolderChange?: (folderId: string) => void;
 	onKeepAudioChange: (keepAudio: boolean) => void;
 	onQualityChange: (quality: number) => void;
 	children: ReactNode;
@@ -92,25 +94,27 @@ export const UploadSettings = ({
 
 			{isOpen && (
 				<Stack gap={4} id={panelId}>
-					<Field
-						description="Shared with the image library - create folders there and they appear here."
-						id={folderInputId}
-						label="Folder"
-					>
-						<Select
-							disabled={isDisabled}
+					{onFolderChange && (
+						<Field
+							description="Shared with the image library - create folders there and they appear here."
 							id={folderInputId}
-							value={folderId}
-							onChange={(event) => onFolderChange(event.currentTarget.value)}
+							label="Folder"
 						>
-							<option value="">No folder</option>
-							{folderPaths.map((entry) => (
-								<option key={entry.id} value={entry.id}>
-									{entry.path}
-								</option>
-							))}
-						</Select>
-					</Field>
+							<Select
+								disabled={isDisabled}
+								id={folderInputId}
+								value={folderId}
+								onChange={(event) => onFolderChange(event.currentTarget.value)}
+							>
+								<option value="">No folder</option>
+								{folderPaths.map((entry) => (
+									<option key={entry.id} value={entry.id}>
+										{entry.path}
+									</option>
+								))}
+							</Select>
+						</Field>
+					)}
 
 					<ToggleRow
 						id={audioInputId}

@@ -1,4 +1,5 @@
 import { TrashIcon } from "@sanity/icons/Trash";
+import { UploadIcon } from "@sanity/icons/Upload";
 import {
 	Box,
 	Button,
@@ -22,6 +23,7 @@ type Props = {
 	asset: LibraryAsset;
 	onChanged: () => void;
 	onDelete: () => void;
+	onReplace: () => void;
 	onClose: () => void;
 };
 
@@ -30,6 +32,7 @@ export const DialogDetails = ({
 	asset,
 	onChanged,
 	onDelete,
+	onReplace,
 	onClose,
 }: Props) => {
 	const { client } = useR2VideoClient();
@@ -137,14 +140,23 @@ export const DialogDetails = ({
 			footer={
 				<DialogActions
 					aside={
-						<Button
-							aria-label="Delete video"
-							disabled={isSaving}
-							icon={TrashIcon}
-							mode="ghost"
-							tone="critical"
-							onClick={onDelete}
-						/>
+						<Flex gap={2}>
+							<Button
+								aria-label="Delete video"
+								disabled={isSaving}
+								icon={TrashIcon}
+								mode="ghost"
+								tone="critical"
+								onClick={onDelete}
+							/>
+							<Button
+								disabled={isSaving || isDirty}
+								icon={UploadIcon}
+								mode="ghost"
+								text="Replace"
+								onClick={onReplace}
+							/>
+						</Flex>
 					}
 					cancel={{
 						text: isDirty ? "Discard" : "Close",

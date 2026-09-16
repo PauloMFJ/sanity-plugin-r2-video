@@ -128,7 +128,7 @@ Videos live in the **R2 Video** tool.
 | **Search**   | Matches filenames and folder names. |
 | **Filters**  | Narrow to videos **In a folder** or with **No folder**, and **In use** or **Unused**. Picking both of a pair shows both. |
 | **Select**   | Tick a card's checkbox, shown on hover, or shift-click the card. A selection can be moved to a folder or deleted together. |
-| **Details**  | Click a card to play the video and see every rendition with its size. Rename it, move it to another folder, or delete it from here.                   |
+| **Details**  | Click a card to play the video and see every rendition with its size. Rename it, move it to another folder, replace it, or delete it from here.                   |
 | **Sync**     | Lists objects in the bucket that no video document claims, and posters in the poster folder that nothing references, then offers to delete them. |
 
 Inside a document, an `r2Video` field picks from the library, or uploads from its button or a file dropped onto it, without leaving the page.
@@ -243,6 +243,16 @@ The Worker holds the only R2 binding, so **no R2 credentials exist outside Cloud
 One directory per video, one object per tier, and no folder segment, as in `<id>/<height>.mp4` above.
 
 Documents store keys and heights rather than URLs, and both the Studio and your front end build sources from `bucketUrl`. Moving the bucket behind a custom domain is a config change rather than a migration. Keys carry no folder either, so renaming or moving a video in the Studio never touches the bucket.
+
+### Replacing
+
+**Replace** in a video's details uploads a new file into the same document, so everything referencing the video shows the new one without being relinked. The name and folder stay the same.
+
+1. Encode and store the new renditions and poster, exactly as an upload does.
+2. In one transaction, swap the document's renditions, poster and metadata, patch its unpublished draft if there is one, and repoint any other reference to the old poster at the new one.
+3. Delete the old poster and renditions.
+
+If anything fails before the transaction commits, the new files are rolled back and the video is unchanged. A failure deleting the old files leaves them unreferenced, for **Sync** to collect.
 
 ### Deleting
 

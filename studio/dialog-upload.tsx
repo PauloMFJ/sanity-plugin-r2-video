@@ -8,7 +8,7 @@ import { formatSize, pluralize, toMessage } from "./format";
 import { PreviewEncode } from "./preview-encode";
 import { canEncodeLadder } from "./transcode";
 import type { R2VideoAsset } from "./types";
-import { DialogActions } from "./ui";
+import { DialogActions, Notice } from "./ui";
 import { UnsupportedBrowser } from "./unsupported-browser";
 import { UploadSettings } from "./upload-settings";
 import { type UploadProgress, uploadVideo } from "./upload-video";
@@ -82,6 +82,9 @@ type Props = {
 
 	/** Files dropped onto the library, staged rather than started. */
 	initialFiles?: File[];
+
+	/** Swaps one upload into this video instead of creating new ones. */
+	replacing?: R2VideoAsset;
 	onUploaded: (asset: R2VideoAsset) => void;
 	onClose: () => void;
 };
@@ -97,6 +100,7 @@ type Props = {
 export const DialogUpload = ({
 	folderId,
 	initialFiles,
+	replacing,
 	onUploaded,
 	onClose,
 }: Props) => {
@@ -158,6 +162,7 @@ export const DialogUpload = ({
 					folderId: targetFolder,
 					keepAudio,
 					encoding,
+					replacing,
 					progressed: (progress) => update(item.id, { progress }),
 				});
 
@@ -176,6 +181,12 @@ export const DialogUpload = ({
 	};
 
 	const stage = (files: File[]) => {
+		// A replacement takes one video, so a new pick swaps out the last
+		if (replacing) {
+			setItems(files.slice(0, 1).map(toItem));
+			return;
+		}
+
 		setItems((existing) => [...existing, ...files.map(toItem)]);
 	};
 
@@ -215,7 +226,7 @@ export const DialogUpload = ({
 
 	return (
 		<Dialog
-			header="Upload videos"
+			header={replacing ? `Replace ${replacing.filename}` : "Upload videos"}
 			id="r2-video-upload"
 			width={1}
 			onClose={isBusy ? undefined : onClose}
@@ -229,7 +240,9 @@ export const DialogUpload = ({
 					confirm={{
 						text: isBusy
 							? "Encoding…"
-							: `Upload ${pluralize(pending.length, "video")}`,
+							: replacing
+								? "Replace"
+								: `Upload ${pluralize(pending.length, "video")}`,
 						tone: "primary",
 						disabled: !canStart,
 						onClick: confirmed,
@@ -241,9 +254,17 @@ export const DialogUpload = ({
 				<Stack gap={5}>
 					{canEncode === false && <UnsupportedBrowser />}
 
+					{replacing && (
+						<Notice tone="caution">
+							Everything using this video shows the new one, and its old
+							renditions and poster are deleted. The name and folder stay the
+							same.
+						</Notice>
+					)}
+
 					<input
 						accept="video/*"
-						multiple
+						multiple={!replacing}
 						ref={fileInputRef}
 						style={{ display: "none" }}
 						type="file"
@@ -269,7 +290,7 @@ export const DialogUpload = ({
 										</Text>
 									</Flex>
 									<Text align="center" muted size={1}>
-										Drop videos here
+										{replacing ? "Drop the new video here" : "Drop videos here"}
 									</Text>
 									<Text align="center" muted size={0}>
 										MP4, MOV or WebM - encoded to every size the site needs
@@ -279,7 +300,7 @@ export const DialogUpload = ({
 									<Button
 										disabled={isBusy || canEncode === null}
 										mode="ghost"
-										text="Choose videos"
+										text={replacing ? "Choose video" : "Choose videos"}
 										onClick={browse}
 									/>
 								</Flex>
@@ -333,7 +354,7 @@ export const DialogUpload = ({
 						isDisabled={isBusy}
 						keepAudio={keepAudio}
 						quality={quality}
-						onFolderChange={setTargetFolder}
+						onFolderChange={replacing ? undefined : setTargetFolder}
 						onKeepAudioChange={setKeepAudio}
 						onQualityChange={setQuality}
 					>

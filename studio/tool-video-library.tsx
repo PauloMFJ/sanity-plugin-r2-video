@@ -190,6 +190,7 @@ export const ToolVideoLibrary = () => {
 	const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 	const [detailing, setDetailing] = useState<LibraryAsset | null>(null);
 	const [deleting, setDeleting] = useState<LibraryAsset[] | null>(null);
+	const [replacing, setReplacing] = useState<LibraryAsset | null>(null);
 	const [filterKeys, setFilterKeys] = useState<string[]>([]);
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [isMoving, setIsMoving] = useState(false);
@@ -528,7 +529,23 @@ export const ToolVideoLibrary = () => {
 						setDeleting([detailing]);
 						setDetailing(null);
 					}}
+					onReplace={() => {
+						setReplacing(detailing);
+						setDetailing(null);
+					}}
 					onClose={() => setDetailing(null)}
+				/>
+			)}
+
+			{replacing && (
+				<DialogUpload
+					folderId={replacing.folder?._ref ?? ""}
+					replacing={replacing}
+					onClose={() => {
+						setReplacing(null);
+						load();
+					}}
+					onUploaded={load}
 				/>
 			)}
 

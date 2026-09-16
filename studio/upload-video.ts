@@ -3,6 +3,11 @@ import { resolveRenditionPath } from "../storage";
 import { deleteObjects, uploadObject } from "./client";
 import type { ResolvedR2VideoConfig } from "./defaults";
 import { resolvePosterFolder } from "./folders";
+import {
+	discardReplaced,
+	swapVideoAsset,
+	type VideoAssetFields,
+} from "./replace-video";
 import { transcodeVideo } from "./transcode";
 import type { TranscodeOptions } from "./transcode.worker";
 import type { R2VideoAsset, R2VideoRendition } from "./types";
@@ -26,6 +31,9 @@ export type UploadRequest = {
 
 	/** Encoding settings for this upload, defaulting to the plugin's config. */
 	encoding: TranscodeOptions;
+
+	/** An existing video to swap this upload into, instead of creating one. */
+	replacing?: R2VideoAsset;
 	progressed: (progress: UploadProgress) => void;
 };
 
@@ -108,6 +116,7 @@ export const uploadVideo = async ({
 	folderId,
 	keepAudio,
 	encoding,
+	replacing,
 	progressed,
 }: UploadRequest): Promise<R2VideoAsset> => {
 	const name = dropExtension(file.name);
@@ -119,6 +128,7 @@ export const uploadVideo = async ({
 
 	// Tracked from here on, because from here on there is something to undo
 	const written: Written = { posterId: null, keys: [] };
+	let saved: R2VideoAsset;
 
 	try {
 		progressed({ stage: "storing", progress: 0, label: "poster" });
@@ -179,12 +189,7 @@ export const uploadVideo = async ({
 
 		progressed({ stage: "saving", progress: 1, label: name });
 
-		return await client.create<Omit<R2VideoAsset, "_id">>({
-			_type: "r2Video.asset",
-			filename: name,
-			...(folderId && {
-				folder: { _type: "reference", _ref: folderId },
-			}),
+		const fields: VideoAssetFields = {
 			poster: {
 				_type: "image",
 				asset: { _type: "reference", _ref: poster._id },
@@ -194,9 +199,28 @@ export const uploadVideo = async ({
 			hasAudio: encoded.hasAudio,
 			renditions,
 			uploadedAt: new Date().toISOString(),
-		});
+		};
+
+		saved = replacing
+			? await swapVideoAsset(client, replacing, fields)
+			: await client.create<Omit<R2VideoAsset, "_id">>({
+					_type: "r2Video.asset",
+					filename: name,
+					...(folderId && {
+						folder: { _type: "reference", _ref: folderId },
+					}),
+					...fields,
+				});
 	} catch (error) {
 		await rollback(client, config, written);
 		throw error;
 	}
+
+	// Outside the try: the swap has already happened, so a failed cleanup must
+	// not roll back the new video
+	if (replacing) {
+		await discardReplaced(client, config, replacing);
+	}
+
+	return saved;
 };
